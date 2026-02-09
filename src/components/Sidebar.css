@@ -1,0 +1,100 @@
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem;
+    height: 100%;
+}
+
+.sidebar-section {
+    background-color: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-section h2 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.25rem;
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
+}
+
+.time-display {
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+}
+
+.time-value {
+    font-size: 1.8rem;
+    font-family: var(--font-heading);
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.time-phase {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.25rem;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-row span:last-child {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+.bar-container {
+    margin-top: 0.25rem;
+    background-color: var(--bg-primary);
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.stat-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.system-menu {
+    margin-top: auto;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.system-menu button {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    border-radius: 2px;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+}
+
+.system-menu button:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--text-secondary);
+    color: var(--accent);
+}

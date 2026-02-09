@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+
+:root {
+  /* Rich Dark Fantasy Palette */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #252525;
+
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+
+  --accent: #ffd700;
+  /* Gold */
+  --accent-hover: #ffed4a;
+  --highlight: #4a9eff;
+  /* Magic Blue */
+
+  --border: #333333;
+  --border-active: #555555;
+
+  /* Semantic Colors */
+  --health: #e53935;
+  --stamina: #fb8c00;
+  --morale: #43a047;
+
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Lato', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  margin-top: 0;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}

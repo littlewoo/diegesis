@@ -1,0 +1,90 @@
+.interaction-list {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    /* Slightly distinct background */
+    padding: 1.5rem;
+    border-radius: 4px;
+}
+
+.interaction-list h3 {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.entity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.interaction-card {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100px;
+}
+
+.interaction-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--highlight);
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.entity-icon {
+    font-size: 1.5rem;
+    background-color: var(--bg-primary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+}
+
+.entity-name {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.card-actions button {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 2px;
+}
+
+.card-actions button:hover {
+    background-color: var(--highlight);
+    color: var(--bg-primary);
+    border-color: var(--highlight);
+}

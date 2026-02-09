@@ -1,0 +1,144 @@
+.game-map-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    user-select: none;
+}
+
+.game-map-svg {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-primary);
+    cursor: grab;
+}
+
+.game-map-svg.grabbing {
+    cursor: grabbing;
+}
+
+.map-node circle {
+    fill: var(--bg-tertiary);
+    stroke: var(--border);
+    stroke-width: 2px;
+    cursor: grab;
+    transition: filter 0.2s, stroke 0.2s, fill 0.2s;
+}
+
+.map-node:active circle {
+    cursor: grabbing;
+}
+
+.map-node:hover circle {
+    stroke: var(--highlight);
+    fill: var(--bg-secondary);
+    filter: url(#glow);
+}
+
+.map-node.current circle {
+    fill: var(--highlight);
+    stroke: white;
+}
+
+.map-node.selected circle {
+    stroke: var(--accent);
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 5px var(--accent));
+}
+
+.node-label {
+    fill: var(--text-secondary);
+    font-size: 10px;
+    font-family: var(--font-body);
+    font-weight: bold;
+    pointer-events: none;
+    text-shadow: 1px 1px 2px black;
+}
+
+.map-edge {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.map-edge-hitbox {
+    cursor: help;
+}
+
+.map-edge-group:hover .map-edge {
+    opacity: 1;
+    stroke: var(--highlight);
+    stroke-width: 2px;
+}
+
+.teleport-bubble {
+    cursor: pointer;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.bubble-bg {
+    fill: var(--highlight);
+    stroke: white;
+    stroke-width: 1px;
+}
+
+.bubble-text {
+    fill: var(--bg-primary);
+    font-size: 4px;
+    font-weight: bold;
+    font-family: var(--font-body);
+    pointer-events: all;
+    text-transform: uppercase;
+}
+
+.teleport-bubble:hover .bubble-bg {
+    filter: brightness(1.2);
+}
+
+.edge-tooltip {
+    pointer-events: none;
+}
+
+.edge-tip-bg {
+    fill: rgba(0, 0, 0, 0.85);
+    stroke: var(--border);
+    stroke-width: 1px;
+}
+
+.edge-tip-text {
+    fill: white;
+    font-size: 8px;
+    font-family: var(--font-body);
+}
+
+.map-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 20;
+}
+
+.map-controls button {
+    width: 30px;
+    height: 30px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-controls button:hover {
+    border-color: var(--highlight);
+    color: var(--highlight);
+}

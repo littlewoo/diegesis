@@ -1,0 +1,54 @@
+.exit-editor {
+    display: flex;
+    flex-direction: column;
+}
+
+.exit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.exit-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.exit-label {
+    font-weight: bold;
+    color: var(--highlight);
+    min-width: 120px;
+}
+
+.exit-target {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+.no-exits {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.exit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 400px;
+}
+
+.create-btn {
+    background-color: var(--bg-secondary) !important;
+    border: 1px dashed var(--border) !important;
+    color: var(--text-secondary) !important;
+}
+
+.create-btn:hover {
+    border-color: var(--morale) !important;
+    color: var(--morale) !important;
+}

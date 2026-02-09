@@ -1,0 +1,56 @@
+.room-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 600px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    color: var(--highlight);
+    font-weight: bold;
+}
+
+.editor-input,
+.editor-textarea {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: 1rem;
+}
+
+.editor-input:focus,
+.editor-textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.editor-textarea {
+    resize: vertical;
+}
+
+.editor-actions {
+    margin-top: 1rem;
+}
+
+.save-btn {
+    background-color: var(--highlight);
+    color: var(--bg-primary);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.save-btn:hover {
+    background-color: var(--accent);
+}
