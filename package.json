@@ -3,6 +3,7 @@
   "description": "OOL - A text RPG built on the Diegesis engine",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
