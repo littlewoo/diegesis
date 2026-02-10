@@ -80,20 +80,43 @@ const player: Player = {
     },
 };
 
+import type { WorldDefinition } from '../types';
+
+// Check for embedded world definition (for standalone builds)
+const EMBEDDED_WORLD = (window as any).DIEGESIS_WORLD_DEFINITION as WorldDefinition | undefined;
+
+export const INITIAL_WORLD: WorldDefinition = EMBEDDED_WORLD || {
+    meta: {
+        title: 'The Abandoned Station',
+        author: 'System',
+        version: '1.0.0'
+    },
+    rooms: {
+        [atrium.id]: atrium,
+        [garden.id]: garden,
+        [lab.id]: lab,
+    },
+    entities: {
+        [statue.id]: statue,
+        [key.id]: key,
+        [datapad.id]: datapad,
+        [npc.id]: npc,
+    },
+    start: {
+        roomId: INITIAL_ROOM_ID,
+        player: {
+            components: player.components // Use the pre-defined player components
+        }
+    }
+};
+
 export const INITIAL_STATE: GameState = {
+    worldId: `${INITIAL_WORLD.meta.title}_${INITIAL_WORLD.meta.version}`,
+    meta: INITIAL_WORLD.meta,
     player,
     world: {
-        rooms: {
-            [atrium.id]: atrium,
-            [garden.id]: garden,
-            [lab.id]: lab,
-        },
-        entities: {
-            [statue.id]: statue,
-            [key.id]: key,
-            [datapad.id]: datapad,
-            [npc.id]: npc,
-        },
+        rooms: INITIAL_WORLD.rooms,
+        entities: INITIAL_WORLD.entities,
     },
     time: 0,
     flags: {},

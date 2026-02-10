@@ -1,4 +1,4 @@
-import type { GameState } from '../types';
+import type { GameState, Player } from '../types';
 import type { Action } from './actions';
 
 export function gameReducer(state: GameState, action: Action): GameState {
@@ -156,6 +156,38 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
         case 'LOAD_GAME':
             return action.payload.state as GameState;
+
+        case 'LOAD_WORLD': {
+            const { definition } = action.payload;
+
+            // Construct initial player state merging defaults with definition
+            const initialPlayer: Player = {
+                id: 'player',
+                type: 'npc',
+                name: 'Traveler',
+                description: 'A wanderer.',
+                components: {
+                    stats: { strength: 10, agility: 10, intelligence: 10 },
+                    moods: { health: 100, stamina: 100, morale: 100 },
+                    inventory: { items: [], capacity: 10 },
+                    position: { currentRoomId: definition.start.roomId },
+                    ...(definition.start.player?.components || {})
+                },
+                ...(definition.start.player || {})
+            };
+
+            return {
+                worldId: `${definition.meta.title}_${definition.meta.version}`, // Simple ID generation
+                meta: definition.meta,
+                player: initialPlayer,
+                world: {
+                    rooms: { ...definition.rooms }, // Clone to avoid mutation of definition
+                    entities: { ...definition.entities }
+                },
+                time: 0,
+                flags: {}
+            };
+        }
 
         case 'SET_FLAG':
             return {

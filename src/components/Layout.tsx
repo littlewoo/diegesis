@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ sidebar, main, bottomPanel }) => {
     const [sidebarWidth, setSidebarWidth] = useState(300);
-    const [adminHeight, setAdminHeight] = useState(250);
+    const [adminHeight, setAdminHeight] = useState(() => window.innerHeight / 3);
     const isResizingSidebar = useRef(false);
     const isResizingAdmin = useRef(false);
 

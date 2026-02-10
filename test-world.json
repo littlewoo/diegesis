@@ -1,0 +1,25 @@
+{
+    "meta": {
+        "title": "Standalone Test World",
+        "author": "Tester",
+        "version": "1.0.0"
+    },
+    "rooms": {
+        "start": {
+            "id": "start",
+            "type": "room",
+            "name": "Starting Point",
+            "description": "You are in a white void. This is a standalone build.",
+            "components": {},
+            "exits": [],
+            "contents": []
+        }
+    },
+    "entities": {},
+    "start": {
+        "roomId": "start",
+        "player": {
+            "components": {}
+        }
+    }
+}

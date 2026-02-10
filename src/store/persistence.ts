@@ -1,4 +1,4 @@
-import type { GameState } from '../types';
+import type { GameState, WorldDefinition } from '../types';
 
 const SAVE_KEY_PREFIX = 'diegesis_save_';
 const INDEX_KEY = 'diegesis_save_index';
@@ -53,4 +53,23 @@ export function deleteSave(slotId: string) {
     localStorage.removeItem(SAVE_KEY_PREFIX + slotId);
     const index = listSaveSlots().filter(s => s.id !== slotId);
     localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+}
+const CURRENT_WORLD_KEY = 'diegesis_active_world';
+
+export function saveWorldDefinition(definition: WorldDefinition) {
+    try {
+        localStorage.setItem(CURRENT_WORLD_KEY, JSON.stringify(definition));
+    } catch (e) {
+        console.error("Failed to save world definition", e);
+    }
+}
+
+export function loadWorldDefinition(): WorldDefinition | null {
+    const raw = localStorage.getItem(CURRENT_WORLD_KEY);
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
 }

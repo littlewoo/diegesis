@@ -1,4 +1,4 @@
-import type { Room } from '../types';
+import type { Room, WorldDefinition, GameState, GameObject } from '../types';
 
 export type Action =
     | { type: 'TICK_TIME'; payload: { ticks: number } }
@@ -6,10 +6,11 @@ export type Action =
     | { type: 'TELEPORT_PLAYER'; payload: { roomId: string } }
     | { type: 'ADD_ROOM'; payload: { room: Room } }
     | { type: 'UPDATE_ROOM'; payload: { roomId: string; data: Partial<Room> } }
-    | { type: 'ADD_ENTITY'; payload: { entity: any; roomId: string } } // entity should be GameObject
-    | { type: 'UPDATE_ENTITY'; payload: { entityId: string; data: any } } // data should be Partial<GameObject>
+    | { type: 'ADD_ENTITY'; payload: { entity: GameObject; roomId: string } }
+    | { type: 'UPDATE_ENTITY'; payload: { entityId: string; data: Partial<GameObject> } }
     | { type: 'REMOVE_ENTITY'; payload: { entityId: string; roomId: string } }
     | { type: 'SET_FLAG'; payload: { key: string; value: boolean } }
     | { type: 'SET_ROOM_POSITION'; payload: { roomId: string; x: number; y: number } }
     // Add more actions as needed (PickUp, Interact, etc.)
-    | { type: 'LOAD_GAME'; payload: { state: any } }; // any for now, should be GameState
+    | { type: 'LOAD_GAME'; payload: { state: GameState } }
+    | { type: 'LOAD_WORLD'; payload: { definition: WorldDefinition } };

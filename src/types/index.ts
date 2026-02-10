@@ -6,9 +6,30 @@ export interface Exit {
     targetRoomId: string;
 }
 
+// --- World Definition (Static "Cartridge") ---
+
+export interface WorldDefinition {
+    meta: {
+        title: string;
+        author: string;
+        version: string;
+        description?: string;
+    };
+    rooms: Record<string, Room>; // Initial state of rooms
+    entities: Record<string, GameObject>; // Initial state of entities
+    start: {
+        roomId: string; // ID of the starting room
+        player?: Partial<Player>; // Optional initial player config check
+    };
+}
+
+// --- Game Session (Dynamic "Save File") ---
+
 export interface GameState {
+    worldId?: string; // ID/Hash of the WorldDefinition this session is based on
+    meta: WorldDefinition['meta']; // Metadata from the WorldDefinition
     player: Player;
-    world: World;
+    world: World; // Current state of the world (initially cloned from Definition)
     time: number; // Global tick count
     flags: Record<string, boolean>; // Global flags for quests/events
 }
