@@ -1,4 +1,4 @@
-import type { GameState, Player } from '../types';
+import type { GameState, Player, GameObject } from '../types';
 import type { Action } from './actions';
 
 export function gameReducer(state: GameState, action: Action): GameState {
@@ -10,24 +10,24 @@ export function gameReducer(state: GameState, action: Action): GameState {
             };
 
         case 'MOVE_PLAYER': {
-            const currentRoomId = state.player.components.position.currentRoomId;
-            const currentRoom = state.world.rooms[currentRoomId];
-            const exit = currentRoom.exits.find(e => e.id === action.payload.exitId);
+            const { exitEntityId } = action.payload;
+            const exitEntity = state.world.entities[exitEntityId];
 
-            if (!exit) {
-                // Exit not found
+            if (!exitEntity || exitEntity.type !== 'exit') {
                 return state;
             }
 
+            const targetRoomId = exitEntity.components.exit.targetRoomId;
+
             return {
                 ...state,
-                time: state.time + 10, // Movement costs time
+                time: state.time + 10,
                 player: {
                     ...state.player,
                     components: {
                         ...state.player.components,
                         position: {
-                            currentRoomId: exit.targetRoomId,
+                            currentRoomId: targetRoomId,
                         },
                     },
                 },
@@ -50,13 +50,32 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
         case 'ADD_ROOM': {
             const { room } = action.payload;
+            // Room payload comes with an ID (from editor logic or blank)
+            // But we should follow the central counter if it matches internal logic
+
+            // Logic: The Action Payload should probably carry the finalized ID
+            // but for safety we can re-assign or trust the payload matches `nextId`.
+            // Given the plan: Reducer manages ID assignment? 
+            // Better: Action Creator/Component claims nextId. Reducer consumes it and increments.
+
+            // Actually, per plan: "Always assign id = state.world.nextId"
+
+            const newId = state.world.nextId;
+            const newRoom = {
+                ...room,
+                id: newId,
+                alias: room.alias || `#${newId}`,
+                contents: [] // Ensure contents are initialized
+            };
+
             return {
                 ...state,
                 world: {
                     ...state.world,
+                    nextId: state.world.nextId + 1,
                     rooms: {
                         ...state.world.rooms,
-                        [room.id]: room
+                        [newId]: newRoom
                     }
                 }
             };
@@ -87,19 +106,28 @@ export function gameReducer(state: GameState, action: Action): GameState {
             const room = state.world.rooms[roomId];
             if (!room) return state;
 
+            const newId = state.world.nextId;
+            const newEntity: GameObject = {
+                ...entity,
+                id: newId,
+                alias: entity.alias || `#${newId}`,
+                type: entity.type // explicit type
+            };
+
             return {
                 ...state,
                 world: {
                     ...state.world,
+                    nextId: state.world.nextId + 1,
                     entities: {
                         ...state.world.entities,
-                        [entity.id]: entity
+                        [newId]: newEntity
                     },
                     rooms: {
                         ...state.world.rooms,
                         [roomId]: {
                             ...room,
-                            contents: [...room.contents, entity.id]
+                            contents: [...room.contents, newId]
                         }
                     }
                 }
@@ -154,6 +182,38 @@ export function gameReducer(state: GameState, action: Action): GameState {
             };
         }
 
+        case 'MOVE_ENTITY': {
+            const { entityId, fromRoomId, toRoomId } = action.payload;
+            const fromRoom = state.world.rooms[fromRoomId];
+            const toRoom = state.world.rooms[toRoomId];
+
+            if (!fromRoom || !toRoom) return state;
+
+            // Remove from old room
+            const newFromContents = fromRoom.contents.filter(id => id !== entityId);
+
+            // Add to new room (prevent duplicates just in case)
+            const newToContents = [...toRoom.contents, entityId].filter((value, index, self) => self.indexOf(value) === index);
+
+            return {
+                ...state,
+                world: {
+                    ...state.world,
+                    rooms: {
+                        ...state.world.rooms,
+                        [fromRoomId]: {
+                            ...fromRoom,
+                            contents: newFromContents
+                        },
+                        [toRoomId]: {
+                            ...toRoom,
+                            contents: newToContents
+                        }
+                    }
+                }
+            };
+        }
+
         case 'LOAD_GAME':
             return action.payload.state as GameState;
 
@@ -162,7 +222,8 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
             // Construct initial player state merging defaults with definition
             const initialPlayer: Player = {
-                id: 'player',
+                id: 1, // Hardcoded Player ID as per spec
+                alias: 'player',
                 type: 'npc',
                 name: 'Traveler',
                 description: 'A wanderer.',
@@ -181,19 +242,21 @@ export function gameReducer(state: GameState, action: Action): GameState {
                 meta: definition.meta,
                 player: initialPlayer,
                 world: {
+                    nextId: 100, // Default start for new worlds
                     rooms: { ...definition.rooms }, // Clone to avoid mutation of definition
                     entities: { ...definition.entities }
                 },
                 time: 0,
-                flags: {}
+                variables: definition.variables || {},
+                messageLog: []
             };
         }
 
-        case 'SET_FLAG':
+        case 'SET_VARIABLE':
             return {
                 ...state,
-                flags: {
-                    ...state.flags,
+                variables: {
+                    ...state.variables,
                     [action.payload.key]: action.payload.value,
                 },
             };
@@ -217,6 +280,12 @@ export function gameReducer(state: GameState, action: Action): GameState {
                 }
             };
         }
+
+        case 'ADD_MESSAGE':
+            return {
+                ...state,
+                messageLog: [...state.messageLog, action.payload.text],
+            };
 
         default:
             return state;

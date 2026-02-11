@@ -3,7 +3,7 @@ import { useGame } from '../../store/GameContext';
 import './GameMap.css';
 
 interface Node {
-    id: string;
+    id: number;
     name: string;
     x: number;
     y: number;
@@ -32,13 +32,13 @@ export const GameMap: React.FC = () => {
     const currentRoomId = state.player.components.position.currentRoomId;
 
     const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
-    const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-    const [draggingNode, setDraggingNode] = useState<string | null>(null);
+    const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+    const [draggingNode, setDraggingNode] = useState<number | null>(null);
     const [isPanning, setIsPanning] = useState(false);
     const [hoveredEdge, setHoveredEdge] = useState<EdgeHover | null>(null);
 
     // Local override for node positions during drag
-    const [localNodePos, setLocalNodePos] = useState<Record<string, { x: number, y: number }>>({});
+    const [localNodePos, setLocalNodePos] = useState<Record<number, { x: number, y: number }>>({});
 
     const svgRef = useRef<SVGSVGElement>(null);
     const lastMousePos = useRef({ x: 0, y: 0 }); // Screen coords
@@ -56,13 +56,20 @@ export const GameMap: React.FC = () => {
 
     // Calculate effective nodes
     const nodes = useMemo(() => {
-        const roomIds = Object.keys(rooms);
+        // Ensure we only process valid numeric IDs that exist in the rooms object
+        const roomIds = Object.keys(rooms)
+            .map(Number)
+            .filter(id => !isNaN(id) && rooms[id]);
+
         const centerX = 250;
         const centerY = 250;
         const radius = Math.min(roomIds.length * 15, 100); // Even tighter
 
         return roomIds.reduce((acc, id, index) => {
             const room = rooms[id];
+            // Since we filtered, room should exist, but let's be extra safe
+            if (!room) return acc;
+
             const pos = localNodePos[id] || room.mapPosition;
 
             if (pos) {
@@ -77,7 +84,7 @@ export const GameMap: React.FC = () => {
                 };
             }
             return acc;
-        }, {} as Record<string, Node>);
+        }, {} as Record<number, Node>);
     }, [rooms, localNodePos]);
 
     const nodesRef = useRef(nodes);
@@ -86,20 +93,26 @@ export const GameMap: React.FC = () => {
     }, [nodes]);
 
     const edges = useMemo(() => {
-        const result: { from: string, to: string, label: string }[] = [];
+        const result: { from: number, to: number, label: string }[] = [];
+        const entities = state.world.entities;
+
         Object.values(rooms).forEach(room => {
-            room.exits.forEach(exit => {
-                if (nodes[room.id] && nodes[exit.targetRoomId]) {
-                    result.push({
-                        from: room.id,
-                        to: exit.targetRoomId,
-                        label: exit.label
-                    });
+            room.contents.forEach(entityId => {
+                const entity = entities[entityId];
+                if (entity && entity.type === 'exit') {
+                    const targetRoomId = entity.components.exit?.targetRoomId;
+                    if (targetRoomId && nodes[room.id] && nodes[targetRoomId]) {
+                        result.push({
+                            from: room.id,
+                            to: targetRoomId,
+                            label: entity.name
+                        });
+                    }
                 }
             });
         });
         return result;
-    }, [rooms, nodes]);
+    }, [rooms, nodes, state.world.entities]);
 
     // Precise coordinate conversion helper
 
@@ -148,11 +161,11 @@ export const GameMap: React.FC = () => {
         const nodeG = target.closest('.map-node');
 
         if (nodeG) {
-            const nodeId = nodeG.getAttribute('data-id');
+            const nodeId = Number(nodeG.getAttribute('data-id'));
             // If we are clicking specifically the teleport bubble, don't drag
             if (target.closest('.teleport-bubble')) return;
 
-            if (nodeId) setDraggingNode(nodeId);
+            if (!isNaN(nodeId)) setDraggingNode(nodeId);
         } else {
             setIsPanning(true);
             dragStartTransform.current = { ...transform };
@@ -171,7 +184,7 @@ export const GameMap: React.FC = () => {
 
         const scale = dragScaleRef.current;
 
-        if (draggingNode) {
+        if (draggingNode !== null) {
             // Use ref for transform k to avoid dependency
             const currentK = transformRef.current.k;
             const dx_world = (dx_screen * scale.x) / currentK;
@@ -200,7 +213,7 @@ export const GameMap: React.FC = () => {
     }, [draggingNode, isPanning]);
 
     const handleMouseUp = useCallback(() => {
-        if (draggingNode) {
+        if (draggingNode !== null) {
             const finalPos = localNodePos[draggingNode];
             if (finalPos) {
                 dispatch({
@@ -214,7 +227,7 @@ export const GameMap: React.FC = () => {
     }, [draggingNode, localNodePos, dispatch]);
 
     useEffect(() => {
-        if (draggingNode || isPanning) {
+        if (draggingNode !== null || isPanning) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
         } else {
@@ -227,12 +240,13 @@ export const GameMap: React.FC = () => {
         };
     }, [draggingNode, isPanning, handleMouseMove, handleMouseUp]);
 
-    const handleTeleport = (roomId: string) => {
+    const handleTeleport = (roomId: number) => {
         dispatch({ type: 'TELEPORT_PLAYER', payload: { roomId } });
         setSelectedRoomId(null);
     };
 
     const resetView = () => setTransform({ x: 0, y: 0, k: 1 });
+
 
     return (
         <div className="game-map-container" onWheel={handleWheel}>

@@ -84,3 +84,54 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-active);
 }
+
+/* Global Button Utilities */
+.delete-btn:hover {
+  background-color: var(--health) !important;
+  border-color: var(--health) !important;
+  color: white !important;
+}
+
+.save-btn {
+  background-color: var(--highlight);
+  color: var(--bg-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.save-btn:hover {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+.add-btn {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  width: 100%;
+  /* Default to full width for lists */
+  text-align: center;
+}
+
+.add-btn:hover {
+  border-color: var(--highlight);
+  color: var(--highlight);
+  background-color: var(--bg-tertiary);
+}
+
+.cancel-btn {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+.cancel-btn:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}

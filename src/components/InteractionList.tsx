@@ -4,7 +4,7 @@ import './InteractionList.css';
 
 interface InteractionListProps {
     entities: GameObject[];
-    onInteract: (entityId: string, actionId: string) => void;
+    onInteract: (entityId: number, actionId: string) => void;
 }
 
 export const InteractionList: React.FC<InteractionListProps> = ({ entities, onInteract }) => {
@@ -28,7 +28,15 @@ export const InteractionList: React.FC<InteractionListProps> = ({ entities, onIn
                             <div className="card-actions">
                                 <button onClick={() => onInteract(entity.id, 'examine')}>Examine</button>
                                 {isItem && <button onClick={() => onInteract(entity.id, 'pickup')}>Pick Up</button>}
-                                {/* Add more dynamic actions here */}
+
+                                {entity.components?.interactions?.map((interaction: any) => (
+                                    <button
+                                        key={interaction.actionId}
+                                        onClick={() => onInteract(entity.id, interaction.actionId)}
+                                    >
+                                        {interaction.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     );

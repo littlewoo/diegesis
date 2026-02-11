@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useGame } from '../../store/GameContext';
 import { RoomEditor } from './RoomEditor';
 import { EntityEditor } from './EntityEditor';
-import { ExitEditor } from './ExitEditor';
+
 import { GameMap } from './GameMap';
+import { RoomListView } from './RoomListView';
 import './AdminPanel.css';
+
+type AdminTab = 'game' | 'current-room' | 'rooms' | 'exits' | 'npc' | 'item' | 'scenery' | 'all';
 
 export const AdminPanel: React.FC = () => {
     const { state, dispatch } = useGame();
-    const [activeTab, setActiveTab] = useState<'game' | 'room' | 'entity' | 'exit'>('game');
+    const [activeTab, setActiveTab] = useState<AdminTab>('game');
 
     const exportWorld = () => {
         const worldDefinition = {
@@ -18,7 +21,7 @@ export const AdminPanel: React.FC = () => {
             start: {
                 roomId: state.player.components.position.currentRoomId,
                 player: {
-                    components: state.player.components // Approximate: export current player stats as starting stats
+                    components: state.player.components
                 }
             }
         };
@@ -34,24 +37,14 @@ export const AdminPanel: React.FC = () => {
 
     const publishGame = async () => {
         try {
-            // Self-Replication Strategy:
-            // 1. Clone the current document (which works offline/file://)
             const htmlClone = document.documentElement.cloneNode(true) as HTMLElement;
-
-            // 2. Clean the state: Empty the React root so it re-initializes fresh
             const root = htmlClone.querySelector('#root');
-            if (root) {
-                root.innerHTML = '';
-            }
+            if (root) root.innerHTML = '';
 
-            // 3. Remove existing World Definition if present (to avoid duplicates)
-            // Use ID if available, otherwise fallback to strict content check
             const oldScript = htmlClone.querySelector('#diegesis-world-def');
             if (oldScript) {
                 oldScript.remove();
             } else {
-                // Fallback: cleanup ONLY if we find a script that literally starts with the definition assignment
-                // This prevents accidental deletion of the app bundle which *references* the variable
                 const scripts = htmlClone.getElementsByTagName('script');
                 for (let i = scripts.length - 1; i >= 0; i--) {
                     if (scripts[i].textContent?.trim().startsWith('window.DIEGESIS_WORLD_DEFINITION =')) {
@@ -60,20 +53,16 @@ export const AdminPanel: React.FC = () => {
                 }
             }
 
-            // 4. Prepare the new World Definition
             const worldDefinition = {
                 meta: state.meta || { title: 'Untitled', author: 'Anonymous', version: '0.0.1' },
                 rooms: state.world.rooms,
                 entities: state.world.entities,
                 start: {
                     roomId: state.player.components.position.currentRoomId,
-                    player: {
-                        components: state.player.components
-                    }
+                    player: { components: state.player.components }
                 }
             };
 
-            // 5. Inject the new definition with an ID for future easy removal
             const head = htmlClone.querySelector('head');
             if (head) {
                 const script = document.createElement('script');
@@ -82,10 +71,7 @@ export const AdminPanel: React.FC = () => {
                 head.appendChild(script);
             }
 
-            // 6. Serialize and Download
-            // We need the DOCTYPE which isn't in outerHTML
             const finalHtml = `<!DOCTYPE html>\n${htmlClone.outerHTML}`;
-
             const blob = new Blob([finalHtml], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -100,35 +86,29 @@ export const AdminPanel: React.FC = () => {
         }
     };
 
+    const renderTabButton = (id: AdminTab, label: string) => (
+        <button
+            className={activeTab === id ? 'active' : ''}
+            onClick={() => setActiveTab(id)}
+        >
+            {label}
+        </button>
+    );
+
     return (
         <div className="admin-panel">
             <div className="admin-header">
                 <h3>Creator Tools</h3>
                 <div className="admin-tabs">
-                    <button
-                        className={activeTab === 'game' ? 'active' : ''}
-                        onClick={() => setActiveTab('game')}
-                    >
-                        Game
-                    </button>
-                    <button
-                        className={activeTab === 'room' ? 'active' : ''}
-                        onClick={() => setActiveTab('room')}
-                    >
-                        Room
-                    </button>
-                    <button
-                        className={activeTab === 'entity' ? 'active' : ''}
-                        onClick={() => setActiveTab('entity')}
-                    >
-                        Entities
-                    </button>
-                    <button
-                        className={activeTab === 'exit' ? 'active' : ''}
-                        onClick={() => setActiveTab('exit')}
-                    >
-                        Exits
-                    </button>
+                    {renderTabButton('game', 'Game')}
+                    {renderTabButton('current-room', 'Current Room')}
+                    {renderTabButton('rooms', 'Rooms')}
+                    {renderTabButton('exits', 'Exits')}
+                    <div className="tab-separator" style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }}></div>
+                    {renderTabButton('npc', 'NPCs')}
+                    {renderTabButton('item', 'Items')}
+                    {renderTabButton('scenery', 'Objects')}
+                    {renderTabButton('all', 'All')}
                 </div>
             </div>
 
@@ -139,7 +119,6 @@ export const AdminPanel: React.FC = () => {
                         <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <button onClick={exportWorld}>Save Source (JSON)</button>
                             <button onClick={publishGame}>Publish (Standalone HTML)</button>
-                            {/* Hidden Import (Load Source) for restoration if needed */}
                             <label className="file-upload" style={{ fontSize: '0.8em', opacity: 0.7 }}>
                                 Load Source
                                 <input
@@ -172,23 +151,35 @@ export const AdminPanel: React.FC = () => {
                         <GameMap />
                     </div>
                 )}
-                {activeTab === 'room' && (
+                {activeTab === 'current-room' && (
                     <div className="admin-section">
                         <h4>Edit Current Room</h4>
                         <p>Room ID: {state.player.components.position.currentRoomId}</p>
                         <RoomEditor />
                     </div>
                 )}
-                {activeTab === 'entity' && (
+                {activeTab === 'rooms' && (
                     <div className="admin-section">
-                        <h4>Manage Entities</h4>
-                        <EntityEditor />
+                        <h4>All Rooms</h4>
+                        <RoomListView />
                     </div>
                 )}
-                {activeTab === 'exit' && (
+                {activeTab === 'exits' && (
                     <div className="admin-section">
                         <h4>Manage Exits</h4>
-                        <ExitEditor />
+                        <EntityEditor initialFilter="exit" initialRoomFilter={true} />
+                    </div>
+                )}
+                {(activeTab === 'npc' || activeTab === 'item' || activeTab === 'scenery') && (
+                    <div className="admin-section">
+                        <h4>Manage {activeTab === 'npc' ? 'NPCs' : activeTab === 'item' ? 'Items' : 'Objects'}</h4>
+                        <EntityEditor initialFilter={activeTab} initialRoomFilter={true} key={activeTab} />
+                    </div>
+                )}
+                {activeTab === 'all' && (
+                    <div className="admin-section">
+                        <h4>All Entities</h4>
+                        <EntityEditor initialFilter="all" />
                     </div>
                 )}
             </div>

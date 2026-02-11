@@ -1,6 +1,6 @@
 import type { GameState, GameObject, Item } from '../types';
 
-export function getRoomEntities(state: GameState, roomId: string): GameObject[] {
+export function getRoomEntities(state: GameState, roomId: number): GameObject[] {
     const room = state.world.rooms[roomId];
     if (!room) return [];
 

@@ -1,0 +1,22 @@
+.message-log {
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message-entry {
+    color: var(--text-primary);
+    animation: fadeIn 0.3s ease;
+}
+
+.message-entry:last-child {
+    font-weight: bold;
+    color: var(--accent);
+}

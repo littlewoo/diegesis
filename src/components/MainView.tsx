@@ -2,6 +2,8 @@ import React from 'react';
 import { useGame } from '../store/GameContext';
 import { getRoomEntities } from '../engine/entities';
 import { InteractionList } from './InteractionList';
+import { MessageLog } from './MessageLog';
+import { ScriptEngine } from '../utils/scriptEngine';
 import './MainView.css';
 
 export const MainView: React.FC = () => {
@@ -16,12 +18,25 @@ export const MainView: React.FC = () => {
 
     const entities = getRoomEntities(state, currentRoomId);
 
-    const handleMove = (exitId: string) => {
-        dispatch({ type: 'MOVE_PLAYER', payload: { exitId } });
-    };
+    const handleInteract = (entityId: number, actionId: string) => {
+        // Find the entity
+        const entity = world.entities[entityId];
+        if (!entity) return;
 
-    const handleInteract = (entityId: string, actionId: string) => {
-        console.log(`Interacting with ${entityId}: ${actionId}`);
+        // Execute "ON_INTERACT" scripts
+        const actions = ScriptEngine.executeTrigger(state, entity.scripts, 'ON_INTERACT');
+
+        if (actions.length > 0) {
+            actions.forEach(dispatch);
+        } else {
+            // Default behavior if no script handles it
+            dispatch({ type: 'ADD_MESSAGE', payload: { text: `You ${actionId} the ${entity.name}. Nothing happens.` } });
+        }
+    };
+    const exitEntities = entities.filter(e => e.type === 'exit') as any[]; // Temporary cast or proper type import
+
+    const handleMove = (exitEntityId: number) => {
+        dispatch({ type: 'MOVE_PLAYER', payload: { exitEntityId } });
     };
 
     return (
@@ -36,14 +51,18 @@ export const MainView: React.FC = () => {
                 <h1 className="room-title">{room.name}</h1>
                 <p className="room-description">{room.description}</p>
 
-                <InteractionList entities={entities} onInteract={handleInteract} />
+                <MessageLog messages={state.messageLog} />
+
+                {/* Filter out exits from InteractionList if needed, though they might want to look at them? */}
+                {/* For now let's just show non-exits in InteractionList to avoid duplication */}
+                <InteractionList entities={entities.filter(e => e.type !== 'exit')} onInteract={handleInteract} />
 
                 <div className="room-exits">
                     <h3>Exits</h3>
                     <div className="exits-grid">
-                        {room.exits.map(exit => (
+                        {exitEntities.map(exit => (
                             <button key={exit.id} className="exit-btn" onClick={() => handleMove(exit.id)}>
-                                {exit.label}
+                                {exit.name}
                             </button>
                         ))}
                     </div>

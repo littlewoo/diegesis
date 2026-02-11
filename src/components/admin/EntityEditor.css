@@ -2,13 +2,48 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    height: 100%;
+    overflow: hidden;
+    /* Container should not scroll */
 }
 
-.entity-list {
+.entity-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    /* Allow form to scroll */
+    padding-right: 0.5rem;
+    flex: 1;
+}
+
+.entity-list-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.entity-list-scroll {
+    flex: 1;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding-right: 0.5rem;
 }
+
+.editor-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+    /* Push to bottom */
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    /* Don't shrink */
+}
+
 
 .entity-list-item {
     display: flex;

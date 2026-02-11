@@ -1,10 +1,5 @@
 
-// Exit represents a named passage from one room to another
-export interface Exit {
-    id: string;          // Unique within the room
-    label: string;       // User-facing name, e.g. "Front Door"
-    targetRoomId: string;
-}
+
 
 // --- World Definition (Static "Cartridge") ---
 
@@ -15,50 +10,72 @@ export interface WorldDefinition {
         version: string;
         description?: string;
     };
-    rooms: Record<string, Room>; // Initial state of rooms
-    entities: Record<string, GameObject>; // Initial state of entities
+    variables?: Record<string, boolean | string | number>;
+    rooms: Record<number, Room>; // Indexed by DB ID
+    entities: Record<number, GameObject>; // Indexed by DB ID
     start: {
-        roomId: string; // ID of the starting room
-        player?: Partial<Player>; // Optional initial player config check
+        roomId: number; // DB ID
+        player?: Partial<Player>;
     };
 }
 
 // --- Game Session (Dynamic "Save File") ---
 
 export interface GameState {
-    worldId?: string; // ID/Hash of the WorldDefinition this session is based on
-    meta: WorldDefinition['meta']; // Metadata from the WorldDefinition
+    worldId?: string;
+    meta: WorldDefinition['meta'];
     player: Player;
-    world: World; // Current state of the world (initially cloned from Definition)
-    time: number; // Global tick count
-    flags: Record<string, boolean>; // Global flags for quests/events
+    world: World;
+    time: number;
+    variables: Record<string, any>;
+    messageLog: string[];
 }
 
 export interface World {
-    rooms: Record<string, Room>;
-    entities: Record<string, GameObject>; // All entities (NPCs, Items, Objects) indexed by ID
+    nextId: number; // Global counter for new IDs
+    rooms: Record<number, Room>;
+    entities: Record<number, GameObject>;
 }
 
 // Optimization: Using a Discriminated Union for GameObject types
-export type GameObjectType = 'room' | 'npc' | 'item' | 'scenery';
+export type GameObjectType = 'room' | 'npc' | 'item' | 'scenery' | 'exit';
 
 export interface GameObject {
-    id: string;
+    id: number;           // Immutable DB ID
+    alias: string;        // Mutable, unique human-readable ID
     type: GameObjectType;
     name: string;
     description: string;
+    scripts?: Record<string, Script[]>; // Trigger -> Scripts
     components: {
-        [key: string]: any; // Flexible component architecture
+        [key: string]: any;
     };
 }
+
+// --- Scripting Engine Types ---
+
+export type TriggerType = 'ON_INTERACT';
+
+export interface Script {
+    conditions?: Condition[];
+    effects: Effect[];
+}
+
+export type Condition =
+    | { type: 'FLAG_TRUE'; flag: string }
+    | { type: 'FLAG_FALSE'; flag: string };
+
+export type Effect =
+    | { type: 'SET_FLAG'; flag: string; value: boolean }
+    | { type: 'SHOW_DIALOGUE'; text: string };
 
 // --- Specific Game Object Interfaces (Convenience wrappers around GameObject) ---
 
 export interface Room extends GameObject {
     type: 'room';
-    exits: Exit[]; // Array of named exits
-    contents: string[]; // IDs of GameObjects in this room
-    mapPosition?: { x: number; y: number }; // Persistent position on the creator map
+    // exits: Exit[]; // REMOVED: Exits are now entities in contents
+    contents: number[]; // DB IDs of GameObjects
+    mapPosition?: { x: number; y: number };
 }
 
 export interface Item extends GameObject {
@@ -73,8 +90,17 @@ export interface WorldObject extends GameObject {
     type: 'scenery';
 }
 
+export interface ExitEntity extends GameObject {
+    type: 'exit';
+    components: {
+        exit: ExitComponent;
+        position: PositionComponent; // Which room it's in
+        [key: string]: any;
+    }
+}
+
 export interface Player extends GameObject {
-    type: 'npc'; // Player is technically an NPC
+    type: 'npc';
     components: {
         stats: StatsComponent;
         moods: MoodsComponent;
@@ -84,6 +110,10 @@ export interface Player extends GameObject {
 }
 
 // --- Components ---
+
+export interface ExitComponent {
+    targetRoomId: number;
+}
 
 export interface StatsComponent {
     strength: number;
@@ -99,12 +129,12 @@ export interface MoodsComponent {
 }
 
 export interface InventoryComponent {
-    items: string[]; // List of Item IDs
+    items: number[]; // DB IDs
     capacity: number;
 }
 
 export interface PositionComponent {
-    currentRoomId: string;
+    currentRoomId: number; // DB ID
 }
 
 export interface CarryableComponent {
@@ -114,7 +144,7 @@ export interface CarryableComponent {
 
 export interface Interaction {
     label: string;
-    actionId: string; // ID of the action logic to trigger
+    actionId: string;
     conditions?: Record<string, any>;
 }
 

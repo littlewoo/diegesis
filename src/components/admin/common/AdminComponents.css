@@ -1,0 +1,63 @@
+.admin-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.admin-list-item.active {
+    background-color: rgba(var(--highlight-rgb), 0.1);
+    border-color: var(--highlight);
+    border-left-width: 4px;
+}
+
+.admin-list-item:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--highlight);
+    transform: translateX(2px);
+}
+
+.admin-list-label {
+    font-weight: bold;
+    color: var(--highlight);
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-list-sublabel {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-left: 1rem;
+}
+
+.admin-list-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    color: var(--health) !important;
+    background-color: rgba(229, 57, 53, 0.1) !important;
+    border-color: transparent !important;
+}

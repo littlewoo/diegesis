@@ -8,12 +8,14 @@ export const RoomEditor: React.FC = () => {
     const room = state.world.rooms[currentRoomId];
 
     const [name, setName] = useState(room?.name || '');
+    const [alias, setAlias] = useState(room?.alias || '');
     const [description, setDescription] = useState(room?.description || '');
 
     // Sync state when room changes
     useEffect(() => {
         if (room) {
             setName(room.name);
+            setAlias(room.alias);
             setDescription(room.description);
         }
     }, [room]);
@@ -27,6 +29,7 @@ export const RoomEditor: React.FC = () => {
                 roomId: currentRoomId,
                 data: {
                     name,
+                    alias,
                     description
                 }
             }
@@ -36,11 +39,20 @@ export const RoomEditor: React.FC = () => {
     return (
         <div className="room-editor">
             <div className="form-group">
-                <label>Room Name</label>
+                <label>Room Name (ID: {room.id})</label>
                 <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="editor-input"
+                />
+            </div>
+            <div className="form-group">
+                <label>Alias</label>
+                <input
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    className="editor-input"
+                    placeholder="Unique alias (e.g. 'start_room')"
                 />
             </div>
             <div className="form-group">

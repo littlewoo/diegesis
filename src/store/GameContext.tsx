@@ -19,11 +19,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
     const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Initial Load
+    // Initial Load with Version Check
     React.useEffect(() => {
         const savedDefinition = loadWorldDefinition();
-        if (savedDefinition) {
+
+        // Version Check: If the code has a newer version than the save, we reset.
+        if (savedDefinition && savedDefinition.meta.version === INITIAL_STATE.meta.version) {
+            console.log('Loading saved world:', savedDefinition.meta.version);
             dispatch({ type: 'LOAD_WORLD', payload: { definition: savedDefinition } });
+        } else {
+            console.log('Version mismatch or no save. resetting to default:', INITIAL_STATE.meta.version);
+            // We don't need to dispatch LOAD_WORLD because INITIAL_STATE is already loaded by useReducer default
+            // But if we want to be explicit or if INITIAL_STATE was just a seed, we could.
+            // In this case, useReducer(..., INITIAL_STATE) handles it.
+            // However, if we had a save in localStorage but it's old, we should probably clear it to avoid confusion later?
+            // saveWorldDefinition(INITIAL_WORLD); // Optional: immediately overwrite old save
         }
     }, []);
 
