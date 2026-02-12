@@ -5,6 +5,7 @@ import { MainView } from './components/MainView';
 import { AdminPanel } from './components/admin/AdminPanel';
 // import { useGame } from './store/GameContext';
 import './App.css';
+import { ThemeManager } from './components/common/ThemeManager';
 
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -14,11 +15,14 @@ const App: React.FC = () => {
   // For now, just rendering the Game Layout
 
   return (
-    <Layout
-      sidebar={<Sidebar isAdmin={isAdmin} onToggleAdmin={() => setIsAdmin(!isAdmin)} />}
-      main={<MainView />}
-      bottomPanel={isAdmin ? <AdminPanel /> : null}
-    />
+    <>
+      <ThemeManager />
+      <Layout
+        sidebar={<Sidebar isAdmin={isAdmin} onToggleAdmin={() => setIsAdmin(!isAdmin)} />}
+        main={<MainView />}
+        bottomPanel={isAdmin ? <AdminPanel /> : null}
+      />
+    </>
   );
 };
 

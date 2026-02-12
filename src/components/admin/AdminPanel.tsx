@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../store/GameContext';
 import { RoomEditor } from './RoomEditor';
 import { EntityEditor } from './EntityEditor';
+import { ThemeEditor } from './ThemeEditor';
 
 import { GameMap } from './GameMap';
 import { RoomListView } from './RoomListView';
@@ -115,7 +116,7 @@ export const AdminPanel: React.FC = () => {
             <div className="admin-content">
                 {activeTab === 'game' && (
                     <div className="admin-section full-height">
-                        <h4>Game Overview & Map</h4>
+                        <h4>Game Overview</h4>
                         <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <button onClick={exportWorld}>Save Source (JSON)</button>
                             <button onClick={publishGame}>Publish (Standalone HTML)</button>
@@ -148,7 +149,10 @@ export const AdminPanel: React.FC = () => {
                                 />
                             </label>
                         </div>
-                        <GameMap />
+                        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--border)', paddingBottom: '3rem' }}>
+                            <h4 style={{ marginBottom: '1.5rem', paddingLeft: '2rem' }}>Theme Settings</h4>
+                            <ThemeEditor />
+                        </div>
                     </div>
                 )}
                 {activeTab === 'current-room' && (
@@ -159,9 +163,16 @@ export const AdminPanel: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'rooms' && (
-                    <div className="admin-section">
-                        <h4>All Rooms</h4>
-                        <RoomListView />
+                    <div className="admin-section full-height">
+                        <h4>All Rooms & Map</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%' }}>
+                            <div style={{ flex: '1', minHeight: '400px' }}>
+                                <GameMap />
+                            </div>
+                            <div style={{ flex: '1', minHeight: '0', overflowY: 'auto' }}>
+                                <RoomListView />
+                            </div>
+                        </div>
                     </div>
                 )}
                 {activeTab === 'exits' && (

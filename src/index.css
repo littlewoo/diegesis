@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:ital,wght@0,300;0,400;0,700;1,400&display=swap');
 
 :root {
-  /* Rich Dark Fantasy Palette */
+  /* Rich Dark Fantasy Palette (Default Fallback) */
   --bg-primary: #121212;
   --bg-secondary: #1e1e1e;
   --bg-tertiary: #252525;
@@ -11,15 +11,13 @@
   --text-muted: #666666;
 
   --accent: #ffd700;
-  /* Gold */
   --accent-hover: #ffed4a;
   --highlight: #4a9eff;
-  /* Magic Blue */
 
-  --border: #333333;
-  --border-active: #555555;
+  --border: #252525;
+  --border-active: #ffd700;
 
-  /* Semantic Colors */
+  /* Semantic Colors - Keeping these static for now as requested */
   --health: #e53935;
   --stamina: #fb8c00;
   --morale: #43a047;

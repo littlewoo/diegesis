@@ -10,15 +10,16 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--bg-tertiary);
     border-radius: 4px;
+    border: 1px solid var(--border);
 }
 
 .search-bar {
     padding: 0.5rem;
-    border: 1px solid #444;
-    background: #222;
-    color: #eee;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     border-radius: 4px;
 }
 
@@ -36,9 +37,9 @@
 
 .filter-select {
     padding: 0.25rem;
-    background: #222;
-    color: #eee;
-    border: 1px solid #444;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     border-radius: 4px;
 }
 

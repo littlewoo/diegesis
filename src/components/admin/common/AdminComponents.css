@@ -13,7 +13,7 @@
 }
 
 .admin-list-item.active {
-    background-color: rgba(var(--highlight-rgb), 0.1);
+    background-color: color-mix(in srgb, var(--highlight), transparent 90%);
     border-color: var(--highlight);
     border-left-width: 4px;
 }

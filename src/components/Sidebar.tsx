@@ -67,7 +67,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onToggleAdmin }) => {
                 >
                     {isAdmin ? 'Exit Creator Mode' : 'Creator Mode'}
                 </button>
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                    <ThemeToggle />
+                </div>
             </section>
         </div>
     );
 };
+
+import { useThemeStore } from '../store/themeStore';
+
+const ThemeToggle = () => {
+    const { mode, setMode } = useThemeStore();
+
+    return (
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button
+                onClick={() => setMode('light')}
+                style={{ flex: 1, fontSize: '0.8em', opacity: mode === 'light' ? 1 : 0.5 }}
+            >
+                Light
+            </button>
+            <button
+                onClick={() => setMode('dark')}
+                style={{ flex: 1, fontSize: '0.8em', opacity: mode === 'dark' ? 1 : 0.5 }}
+            >
+                Dark
+            </button>
+            <button
+                onClick={() => setMode('system')}
+                style={{ flex: 1, fontSize: '0.8em', opacity: mode === 'system' ? 1 : 0.5 }}
+            >
+                Auto
+            </button>
+        </div>
+    );
+}
