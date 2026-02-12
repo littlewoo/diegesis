@@ -8,15 +8,20 @@ import './MainView.css';
 
 export const MainView: React.FC = () => {
     const { state, dispatch } = useGame();
-    const { player, world } = state;
-    const currentRoomId = player.components.position.currentRoomId;
-    const room = world.rooms[currentRoomId];
+    const { world } = state;
+    const player = world.entities[state.player];
 
-    if (!room) {
-        return <div>Error: Room {currentRoomId} not found.</div>;
+    // Safety check if player entity is missing (e.g. during load)
+    if (!player) return <div>Loading...</div>;
+
+    const currentRoomId = player.components.position?.roomId;
+    const room = currentRoomId ? world.entities[currentRoomId] : undefined;
+
+    if (!room || !room.components.room) {
+        return <div>Error: Room {currentRoomId} not found or invalid.</div>;
     }
 
-    const entities = getRoomEntities(state, currentRoomId);
+    const entities = getRoomEntities(state, currentRoomId!);
 
     const handleInteract = (entityId: number, actionId: string) => {
         // Find the entity
@@ -24,16 +29,23 @@ export const MainView: React.FC = () => {
         if (!entity) return;
 
         // Execute "ON_INTERACT" scripts
-        const actions = ScriptEngine.executeTrigger(state, entity.scripts, 'ON_INTERACT');
+        const scripts = entity.components.scripts || {};
+        const actions = ScriptEngine.executeTrigger(state, scripts, 'ON_INTERACT');
 
         if (actions.length > 0) {
             actions.forEach(dispatch);
         } else {
             // Default behavior if no script handles it
-            dispatch({ type: 'ADD_MESSAGE', payload: { text: `You ${actionId} the ${entity.name}. Nothing happens.` } });
+            dispatch({ type: 'ADD_MESSAGE', payload: { text: `You ${actionId} the ${entity.components.identity.name}. Nothing happens.` } });
         }
     };
-    const exitEntities = entities.filter(e => e.type === 'exit') as any[]; // Temporary cast or proper type import
+
+    // Exits are entities that have the 'exit' component (or we check type 'exit' if we kept legacy tag)
+    // types/index.ts says Entity has type: 'room' | 'npc' | 'item' | 'prop'
+    // I removed 'exit' from types!
+    // But I added ExitComponent.
+    // So exits are entities with components.exit defined.
+    const exitEntities = entities.filter(e => e.components.exit);
 
     const handleMove = (exitEntityId: number) => {
         dispatch({ type: 'MOVE_PLAYER', payload: { exitEntityId } });
@@ -43,26 +55,25 @@ export const MainView: React.FC = () => {
         <div className="room-container">
             <div className="room-image-placeholder">
                 <div className="art-box">
-                    <span>{room.name} Art</span>
+                    <span>{room.components.identity.name} Art</span>
                 </div>
             </div>
 
             <div className="room-content">
-                <h1 className="room-title">{room.name}</h1>
-                <p className="room-description">{room.description}</p>
+                <h1 className="room-title">{room.components.identity.name}</h1>
+                <p className="room-description">{room.components.identity.description}</p>
 
                 <MessageLog messages={state.messageLog} />
 
-                {/* Filter out exits from InteractionList if needed, though they might want to look at them? */}
-                {/* For now let's just show non-exits in InteractionList to avoid duplication */}
-                <InteractionList entities={entities.filter(e => e.type !== 'exit')} onInteract={handleInteract} />
+                {/* Filter out exits from InteractionList */}
+                <InteractionList entities={entities.filter(e => !e.components.exit)} onInteract={handleInteract} />
 
                 <div className="room-exits">
                     <h3>Exits</h3>
                     <div className="exits-grid">
                         {exitEntities.map(exit => (
                             <button key={exit.id} className="exit-btn" onClick={() => handleMove(exit.id)}>
-                                {exit.name}
+                                {exit.components.identity.name}
                             </button>
                         ))}
                     </div>

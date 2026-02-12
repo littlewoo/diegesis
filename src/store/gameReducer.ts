@@ -1,5 +1,16 @@
-import type { GameState, Player, GameObject } from '../types';
+import type { GameState, Entity } from '../types';
 import type { Action } from './actions';
+
+// Helper to create a default entity
+const createEntity = (id: number, template: Partial<Entity>): Entity => ({
+    id,
+    alias: template.alias || `#${id}`,
+    type: template.type || 'prop',
+    components: {
+        identity: { name: 'Unknown', description: '...' },
+        ...template.components
+    }
+});
 
 export function gameReducer(state: GameState, action: Action): GameState {
     switch (action.type) {
@@ -13,123 +24,169 @@ export function gameReducer(state: GameState, action: Action): GameState {
             const { exitEntityId } = action.payload;
             const exitEntity = state.world.entities[exitEntityId];
 
-            if (!exitEntity || exitEntity.type !== 'exit') {
+            if (!exitEntity || !exitEntity.components.exit) {
                 return state;
             }
 
             const targetRoomId = exitEntity.components.exit.targetRoomId;
 
-            return {
-                ...state,
-                time: state.time + 10,
-                player: {
-                    ...state.player,
-                    components: {
-                        ...state.player.components,
-                        position: {
-                            currentRoomId: targetRoomId,
-                        },
-                    },
-                },
-            };
-        }
+            // Reuse TELEPORT logic primarily, but might add time/flavor
+            // For now, just teleport
+            // We can dispatch TELEPORT_PLAYER or duplicate logic. 
+            // Duplicating logic to avoid side-effects of dispatch within reducer (impossible)
 
-        case 'TELEPORT_PLAYER':
-            return {
-                ...state,
-                player: {
-                    ...state.player,
+            const player = state.world.entities[state.player];
+            if (!player) return state;
+
+            // 1. Remove from old room
+            const oldRoomId = player.components.position?.roomId;
+            const oldRoom = oldRoomId ? state.world.entities[oldRoomId] : null;
+
+            let newEntities = { ...state.world.entities };
+
+            if (oldRoom && oldRoom.components.container) {
+                newEntities[oldRoom.id] = {
+                    ...oldRoom,
                     components: {
-                        ...state.player.components,
-                        position: {
-                            currentRoomId: action.payload.roomId
+                        ...oldRoom.components,
+                        container: {
+                            ...oldRoom.components.container,
+                            contents: oldRoom.components.container.contents.filter(id => id !== state.player)
                         }
                     }
-                }
+                };
             }
 
-        case 'ADD_ROOM': {
-            const { room } = action.payload;
-            // Room payload comes with an ID (from editor logic or blank)
-            // But we should follow the central counter if it matches internal logic
+            // 2. Add to new room
+            const newRoom = newEntities[targetRoomId];
+            if (newRoom && newRoom.components.container) {
+                newEntities[targetRoomId] = {
+                    ...newRoom,
+                    components: {
+                        ...newRoom.components,
+                        container: {
+                            ...newRoom.components.container,
+                            contents: [...newRoom.components.container.contents, state.player]
+                        }
+                    }
+                };
+            }
 
-            // Logic: The Action Payload should probably carry the finalized ID
-            // but for safety we can re-assign or trust the payload matches `nextId`.
-            // Given the plan: Reducer manages ID assignment? 
-            // Better: Action Creator/Component claims nextId. Reducer consumes it and increments.
-
-            // Actually, per plan: "Always assign id = state.world.nextId"
-
-            const newId = state.world.nextId;
-            const newRoom = {
-                ...room,
-                id: newId,
-                alias: room.alias || `#${newId}`,
-                contents: [] // Ensure contents are initialized
+            // 3. Update Player Position
+            newEntities[state.player] = {
+                ...player,
+                components: {
+                    ...player.components,
+                    position: {
+                        ...player.components.position,
+                        roomId: targetRoomId
+                    }
+                }
             };
 
             return {
                 ...state,
+                time: state.time + 10, // Cost of moving
                 world: {
                     ...state.world,
-                    nextId: state.world.nextId + 1,
-                    rooms: {
-                        ...state.world.rooms,
-                        [newId]: newRoom
-                    }
+                    entities: newEntities
                 }
             };
         }
 
-        case 'UPDATE_ROOM': {
-            const { roomId, data } = action.payload;
-            const room = state.world.rooms[roomId];
-            if (!room) return state;
+        case 'TELEPORT_PLAYER': {
+            const { roomId } = action.payload;
+            const player = state.world.entities[state.player];
+            if (!player) return state;
+
+            // 1. Remove from old room
+            const oldRoomId = player.components.position?.roomId;
+            const oldRoom = oldRoomId ? state.world.entities[oldRoomId] : null;
+
+            let newEntities = { ...state.world.entities };
+
+            if (oldRoom && oldRoom.components.container) {
+                newEntities[oldRoom.id] = {
+                    ...oldRoom,
+                    components: {
+                        ...oldRoom.components,
+                        container: {
+                            ...oldRoom.components.container,
+                            contents: oldRoom.components.container.contents.filter(id => id !== state.player)
+                        }
+                    }
+                };
+            }
+
+            // 2. Add to new room
+            const newRoom = newEntities[roomId];
+            if (newRoom && newRoom.components.container) {
+                newEntities[roomId] = {
+                    ...newRoom,
+                    components: {
+                        ...newRoom.components,
+                        container: {
+                            ...newRoom.components.container,
+                            contents: [...newRoom.components.container.contents, state.player]
+                        }
+                    }
+                };
+            }
+
+            // 3. Update Player Position
+            newEntities[state.player] = {
+                ...player,
+                components: {
+                    ...player.components,
+                    position: {
+                        ...player.components.position,
+                        roomId: roomId // Container ID
+                    }
+                }
+            };
 
             return {
                 ...state,
                 world: {
                     ...state.world,
-                    rooms: {
-                        ...state.world.rooms,
-                        [roomId]: {
-                            ...room,
-                            ...data
-                        }
-                    }
+                    entities: newEntities
                 }
             };
         }
 
         case 'ADD_ENTITY': {
-            const { entity, roomId } = action.payload;
-            const room = state.world.rooms[roomId];
-            if (!room) return state;
-
+            const { entity } = action.payload;
             const newId = state.world.nextId;
-            const newEntity: GameObject = {
-                ...entity,
-                id: newId,
-                alias: entity.alias || `#${newId}`,
-                type: entity.type // explicit type
-            };
+
+            // Hydrate the entity with data from payload
+            const newEntity = createEntity(newId, entity);
+
+            let newEntities = { ...state.world.entities, [newId]: newEntity };
+
+            // If it has a position (container), add it to that container's contents
+            const containerId = newEntity.components.position?.roomId;
+            if (containerId && newEntities[containerId]) {
+                const container = newEntities[containerId];
+                if (container.components.container) {
+                    newEntities[containerId] = {
+                        ...container,
+                        components: {
+                            ...container.components,
+                            container: {
+                                ...container.components.container,
+                                contents: [...container.components.container.contents, newId]
+                            }
+                        }
+                    };
+                }
+            }
 
             return {
                 ...state,
                 world: {
                     ...state.world,
                     nextId: state.world.nextId + 1,
-                    entities: {
-                        ...state.world.entities,
-                        [newId]: newEntity
-                    },
-                    rooms: {
-                        ...state.world.rooms,
-                        [roomId]: {
-                            ...room,
-                            contents: [...room.contents, newId]
-                        }
-                    }
+                    entities: newEntities
                 }
             };
         }
@@ -139,6 +196,16 @@ export function gameReducer(state: GameState, action: Action): GameState {
             const entity = state.world.entities[entityId];
             if (!entity) return state;
 
+            // Deep merge logic for components might be needed, but for now shallow merge of 'data' which includes components overwrites?
+            // The usage usually is { components: { ...entity.components, ...newComponents } }
+            // So standard spread works if 'data' is constructed correctly.
+
+            // SPECIAL CASE: If 'position' changes, we must update containers!
+            // But this action is generic update. 
+            // We should use MOVE_ENTITY for changing containers to ensure consistency.
+            // If data contains 'components.position', we might desync 'contents'.
+            // For now, assume UPDATE_ENTITY is local property updates only.
+
             return {
                 ...state,
                 world: {
@@ -147,7 +214,11 @@ export function gameReducer(state: GameState, action: Action): GameState {
                         ...state.world.entities,
                         [entityId]: {
                             ...entity,
-                            ...data
+                            ...data,
+                            components: {
+                                ...entity.components,
+                                ...data.components
+                            }
                         }
                     }
                 }
@@ -155,61 +226,97 @@ export function gameReducer(state: GameState, action: Action): GameState {
         }
 
         case 'REMOVE_ENTITY': {
-            const { entityId, roomId } = action.payload;
-            const room = state.world.rooms[roomId];
-            if (!room) return state;
+            const { entityId } = action.payload;
+            const entity = state.world.entities[entityId];
+            if (!entity) return state;
 
-            // Remove from room contents
-            const newContents = room.contents.filter(id => id !== entityId);
-
-            // Remove from world entities (cleanup)
+            const containerId = entity.components.position?.roomId;
             const newEntities = { ...state.world.entities };
+
+            // Remove from container
+            if (containerId && newEntities[containerId]) {
+                const container = newEntities[containerId];
+                if (container.components.container) {
+                    newEntities[containerId] = {
+                        ...container,
+                        components: {
+                            ...container.components,
+                            container: {
+                                ...container.components.container,
+                                contents: container.components.container.contents.filter(id => id !== entityId)
+                            }
+                        }
+                    };
+                }
+            }
+
             delete newEntities[entityId];
 
             return {
                 ...state,
                 world: {
                     ...state.world,
-                    entities: newEntities,
-                    rooms: {
-                        ...state.world.rooms,
-                        [roomId]: {
-                            ...room,
-                            contents: newContents
-                        }
-                    }
+                    entities: newEntities
                 }
             };
         }
 
         case 'MOVE_ENTITY': {
-            const { entityId, fromRoomId, toRoomId } = action.payload;
-            const fromRoom = state.world.rooms[fromRoomId];
-            const toRoom = state.world.rooms[toRoomId];
+            const { entityId, targetContainerId } = action.payload;
+            const entity = state.world.entities[entityId];
+            const targetContainer = state.world.entities[targetContainerId];
 
-            if (!fromRoom || !toRoom) return state;
+            if (!entity || !targetContainer || !targetContainer.components.container) return state;
 
-            // Remove from old room
-            const newFromContents = fromRoom.contents.filter(id => id !== entityId);
+            const oldContainerId = entity.components.position?.roomId;
+            const oldContainer = oldContainerId ? state.world.entities[oldContainerId] : null;
 
-            // Add to new room (prevent duplicates just in case)
-            const newToContents = [...toRoom.contents, entityId].filter((value, index, self) => self.indexOf(value) === index);
+            let newEntities = { ...state.world.entities };
+
+            // 1. Remove from old container
+            if (oldContainer && oldContainer.components.container) {
+                newEntities[oldContainer.id] = {
+                    ...oldContainer,
+                    components: {
+                        ...oldContainer.components,
+                        container: {
+                            ...oldContainer.components.container,
+                            contents: oldContainer.components.container.contents.filter(id => id !== entityId)
+                        }
+                    }
+                };
+            }
+
+            // 2. Add to new container
+            newEntities[targetContainerId] = {
+                ...targetContainer,
+                components: {
+                    ...targetContainer.components,
+                    container: {
+                        ...targetContainer.components.container,
+                        contents: [...targetContainer.components.container.contents, entityId]
+                    }
+                }
+            };
+
+            // 3. Update Entity Position
+            newEntities[entityId] = {
+                ...entity,
+                components: {
+                    ...entity.components,
+                    // Ensure position component exists
+                    position: {
+                        ...(entity.components.position || { x: 0, y: 0 }),
+                        roomId: targetContainerId
+                    }
+                }
+            };
 
             return {
                 ...state,
                 world: {
                     ...state.world,
-                    rooms: {
-                        ...state.world.rooms,
-                        [fromRoomId]: {
-                            ...fromRoom,
-                            contents: newFromContents
-                        },
-                        [toRoomId]: {
-                            ...toRoom,
-                            contents: newToContents
-                        }
-                    }
+                    entities: newEntities
                 }
             };
         }
@@ -220,30 +327,20 @@ export function gameReducer(state: GameState, action: Action): GameState {
         case 'LOAD_WORLD': {
             const { definition } = action.payload;
 
-            // Construct initial player state merging defaults with definition
-            const initialPlayer: Player = {
-                id: 1, // Hardcoded Player ID as per spec
-                alias: 'player',
-                type: 'npc',
-                name: 'Traveler',
-                description: 'A wanderer.',
-                components: {
-                    stats: { strength: 10, agility: 10, intelligence: 10 },
-                    moods: { health: 100, stamina: 100, morale: 100 },
-                    inventory: { items: [], capacity: 10 },
-                    position: { currentRoomId: definition.start.roomId },
-                    ...(definition.start.player?.components || {})
-                },
-                ...(definition.start.player || {})
-            };
+            // Create specific default entities for player and start room if needed
+            // But usually 'definition' contains the full world dump.
+            // We just need to ensure the structure matches GameState.
+
+            // Re-construct the definition into the runtime state
+            // Assuming definition.entities is already in the right format.
 
             return {
-                worldId: `${definition.meta.title}_${definition.meta.version}`, // Simple ID generation
+                worldId: `${definition.meta.title}_${definition.meta.version}`,
                 meta: definition.meta,
-                player: initialPlayer,
+                player: 1, // Hardcoded ID for now, or find entity with 'isPlayer'? 
+                // For now, let's assume Entity 1 is Player.
                 world: {
-                    nextId: 100, // Default start for new worlds
-                    rooms: { ...definition.rooms }, // Clone to avoid mutation of definition
+                    nextId: 100,
                     entities: { ...definition.entities }
                 },
                 time: 0,
@@ -260,26 +357,6 @@ export function gameReducer(state: GameState, action: Action): GameState {
                     [action.payload.key]: action.payload.value,
                 },
             };
-
-        case 'SET_ROOM_POSITION': {
-            const { roomId, x, y } = action.payload;
-            const room = state.world.rooms[roomId];
-            if (!room) return state;
-
-            return {
-                ...state,
-                world: {
-                    ...state.world,
-                    rooms: {
-                        ...state.world.rooms,
-                        [roomId]: {
-                            ...room,
-                            mapPosition: { x, y }
-                        }
-                    }
-                }
-            };
-        }
 
         case 'ADD_MESSAGE':
             return {

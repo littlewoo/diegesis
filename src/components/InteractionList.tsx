@@ -1,9 +1,9 @@
 import React from 'react';
-import type { GameObject } from '../types';
+import type { Entity } from '../types';
 import './InteractionList.css';
 
 interface InteractionListProps {
-    entities: GameObject[];
+    entities: Entity[];
     onInteract: (entityId: number, actionId: string) => void;
 }
 
@@ -15,28 +15,23 @@ export const InteractionList: React.FC<InteractionListProps> = ({ entities, onIn
             <h3>Interactables</h3>
             <div className="entity-grid">
                 {entities.map(entity => {
-                    // For now, hardcoding a "Look" action for everyone, and "Pick Up" for items
-                    // real logic would check entity.components.interactions
-                    const isItem = entity.type === 'item';
+                    const isItem = !!entity.components.portable;
+                    const isNPC = !!entity.components.stats || entity.type === 'npc';
+                    const name = entity.components.identity.name; // Assumes identity always exists
+                    const icon = entity.components.identity.icon || (isItem ? '📦' : (isNPC ? '👤' : '❓'));
 
                     return (
                         <div key={entity.id} className="interaction-card">
                             <div className="card-header">
-                                <span className="entity-icon">{isItem ? '📦' : '👤'}</span>
-                                <span className="entity-name">{entity.name}</span>
+                                <span className="entity-icon">{icon}</span>
+                                <span className="entity-name">{name}</span>
                             </div>
                             <div className="card-actions">
                                 <button onClick={() => onInteract(entity.id, 'examine')}>Examine</button>
                                 {isItem && <button onClick={() => onInteract(entity.id, 'pickup')}>Pick Up</button>}
+                                {isNPC && <button onClick={() => onInteract(entity.id, 'talk')}>Talk</button>}
 
-                                {entity.components?.interactions?.map((interaction: any) => (
-                                    <button
-                                        key={interaction.actionId}
-                                        onClick={() => onInteract(entity.id, interaction.actionId)}
-                                    >
-                                        {interaction.label}
-                                    </button>
-                                ))}
+                                {/* Future: Dynamic actions from ScriptComponent keywords? */}
                             </div>
                         </div>
                     );

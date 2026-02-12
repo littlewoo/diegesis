@@ -1,163 +1,146 @@
-import type { GameState, Room, Player, Item, WorldObject, GameObject, ExitEntity } from '../types';
+import type { GameState, Entity, WorldDefinition } from '../types';
 
-const INITIAL_ROOM_ID = 2; // Atrium
 
-// Helper to create basic entities
-const createItem = (id: number, alias: string, name: string, description: string): Item => ({
-    id, alias, type: 'item', name, description,
-    components: { carryable: { weight: 1, value: 10 } }
-});
+// --- Factory Helpers ---
 
-const createScenery = (id: number, alias: string, name: string, description: string): WorldObject => ({
-    id, alias, type: 'scenery', name, description,
-    components: {}
-});
-
-// Helper to create exit entities
-const createExit = (id: number, alias: string, label: string, currentRoomId: number, targetRoomId: number): ExitEntity => ({
-    id, alias, type: 'exit', name: label, description: `Exit to room ${targetRoomId}`,
+const createEntity = (id: number, alias: string, type: Entity['type'], name: string, description: string, components: any = {}): Entity => ({
+    id,
+    alias,
+    type,
     components: {
-        exit: { targetRoomId },
-        position: { currentRoomId }
+        identity: { name, description },
+        ...components
     }
 });
 
-const atrium: Room = {
-    id: 2,
-    alias: 'atrium',
-    type: 'room',
-    name: 'Grand Atrium',
-    description: 'A vast, echoing chamber with a high vaulted ceiling. Light filters in through dust-moted shafts from high windows.',
-    components: {},
-    // Exits moved to contents
-    contents: [5, 6, 20, 21], // Statue, Key, Exit Garden, Exit Lab
+const createRoom = (id: number, alias: string, name: string, description: string, contents: number[] = []): Entity => {
+    return createEntity(id, alias, 'room', name, description, {
+        room: { exits: [] },
+        container: { contents },
+        identity: { name, description }
+    });
 };
 
-const garden: Room = {
-    id: 3,
-    alias: 'garden',
-    type: 'room',
-    name: 'Overgrown Garden',
-    description: 'Nature has reclaimed this space. Vines thick as a man\'s arm slightly obscure the crumbling stone walls.',
-    components: {},
-    // Exits moved to contents
-    contents: [8, 22], // NPC, Exit Atrium
+const createItem = (id: number, alias: string, name: string, description: string, weight = 1, value = 1): Entity => {
+    return createEntity(id, alias, 'item', name, description, {
+        portable: { weight, value },
+    });
 };
 
-const lab: Room = {
-    id: 4,
-    alias: 'lab',
-    type: 'room',
-    name: 'Research Lab',
-    description: 'Clean, white, and sterile. Banks of servers blink rhythmically against the far wall.',
-    components: {},
-    // Exits moved to contents
-    contents: [7, 23], // Datapad, Exit Atrium
+const createProp = (id: number, alias: string, name: string, description: string): Entity => {
+    return createEntity(id, alias, 'prop', name, description, {
+        prop: {},
+    });
 };
 
-// Entities
-// ID 5 = Statue
-const statue: WorldObject = createScenery(5, 'statue_hero', 'Marble Statue', 'A statue of a forgotten hero, their face worn away by time.');
-// ID 6 = Key
-const key: Item = createItem(6, 'rusty_key', 'Rusty Key', 'An old iron key, heavy and covered in rust.');
-// ID 7 = Datapad
-const datapad: Item = createItem(7, 'datapad', 'Cracked Datapad', 'A screen displaying a fragmented log entry.');
+const createExit = (id: number, alias: string, label: string, currentRoomId: number, targetRoomId: number): Entity => {
+    return createEntity(id, alias, 'prop', label, `Exit to room ${targetRoomId}`, {
+        exit: { targetRoomId },
+        position: { roomId: currentRoomId },
+        prop: {},
+    });
+};
 
-const npc: GameObject = {
+// --- Definitions ---
+
+// Rooms
+const atrium = createRoom(2, 'atrium', 'Grand Atrium', 'A vast, echoing chamber with a high vaulted ceiling. Light filters in through dust-moted shafts from high windows.', [5, 6, 20, 21]);
+const garden = createRoom(3, 'garden', 'Overgrown Garden', 'Nature has reclaimed this space. Vines thick as a man\'s arm slightly obscure the crumbling stone walls.', [8, 22]);
+const lab = createRoom(4, 'lab', 'Research Lab', 'Clean, white, and sterile. Banks of servers blink rhythmically against the far wall.', [7, 23]);
+
+// Items & Props
+const statue = createProp(5, 'statue_hero', 'Marble Statue', 'A statue of a forgotten hero, their face worn away by time.');
+statue.components.position = { roomId: 2 };
+
+const key = createItem(6, 'rusty_key', 'Rusty Key', 'An old iron key, heavy and covered in rust.');
+key.components.position = { roomId: 2 };
+
+const datapad = createItem(7, 'datapad', 'Cracked Datapad', 'A screen displaying a fragmented log entry.');
+datapad.components.position = { roomId: 4 };
+
+// NPC
+const npc: Entity = {
     id: 8,
     alias: 'gardener_bot',
     type: 'npc',
-    name: 'Unit-734',
-    description: 'A hovering maintenance droid, pruning a rosebush with delicate lasers.',
-    scripts: {
-        'ON_INTERACT': [
-            {
-                conditions: [{ type: 'FLAG_TRUE', flag: 'met_gardener' }],
-                effects: [
-                    { type: 'SHOW_DIALOGUE', text: 'Unit-734 buzzes angrily at you.' }
-                ]
-            },
-            {
-                // Default / First time
-                effects: [
-                    { type: 'SHOW_DIALOGUE', text: 'Unit-734 chirps: "Organic lifeform detected. Pruning protocols active."' },
-                    { type: 'SET_FLAG', flag: 'met_gardener', value: true }
-                ]
-            }
-        ]
-    },
     components: {
-        interactions: [
-            { label: 'Talk', actionId: 'talk_gardener' }
-        ]
+        identity: {
+            name: 'Unit-734',
+            description: 'A hovering maintenance droid, pruning a rosebush with delicate lasers.'
+        },
+        stats: { strength: 10, health: 50, maxHealth: 50 },
+        container: { contents: [] },
+        position: { roomId: 3 },
+        scripts: {
+            'ON_INTERACT': [
+                {
+                    conditions: [{ type: 'FLAG_TRUE', flag: 'met_gardener' }],
+                    effects: [
+                        { type: 'SHOW_DIALOGUE', text: 'Unit-734 buzzes angrily at you.' }
+                    ]
+                },
+                {
+                    // Default / First time
+                    effects: [
+                        { type: 'SHOW_DIALOGUE', text: 'Unit-734 chirps: "Organic lifeform detected. Pruning protocols active."' },
+                        { type: 'SET_FLAG', flag: 'met_gardener', value: true }
+                    ]
+                }
+            ]
+        }
     }
 };
 
-// Exits as Entities (IDs 20+)
+// Exits
 const exitGarden = createExit(20, 'exit_garden', 'Garden Gate', 2, 3);
 const exitLab = createExit(21, 'exit_lab', 'Lab Corridor', 2, 4);
 const exitAtriumFromGarden = createExit(22, 'exit_atrium_garden', 'Back to Atrium', 3, 2);
 const exitAtriumFromLab = createExit(23, 'exit_atrium_lab', 'Main Hall', 4, 2);
 
-const player: Player = {
+// Player
+const playerEntity: Entity = {
     id: 1,
     alias: 'player',
-    type: 'npc',
-    name: 'Traveler',
-    description: 'A wanderer in this strange place.',
+    type: 'npc', // Players are NPCs/Actors
     components: {
-        stats: { strength: 12, agility: 14, intelligence: 16 },
-        moods: { health: 100, stamina: 90, morale: 85 },
-        inventory: { items: [], capacity: 10 },
-        position: { currentRoomId: INITIAL_ROOM_ID },
-    },
+        identity: { name: 'Traveler', description: 'A wanderer in this strange place.' },
+        stats: { strength: 12, health: 100, maxHealth: 100 },
+        container: { contents: [], capacity: 10 },
+        position: { roomId: 2 } // Start in Atrium
+    }
 };
 
-import type { WorldDefinition } from '../types';
+// Aggregate all entities
+const allEntitiesList = [atrium, garden, lab, statue, key, datapad, npc, exitGarden, exitLab, exitAtriumFromGarden, exitAtriumFromLab, playerEntity];
+const entitiesMap: Record<number, Entity> = {};
+allEntitiesList.forEach(e => entitiesMap[e.id] = e);
 
-// Check for embedded world definition (for standalone builds)
+// World Def
 const EMBEDDED_WORLD = (window as any).DIEGESIS_WORLD_DEFINITION as WorldDefinition | undefined;
 
 export const INITIAL_WORLD: WorldDefinition = EMBEDDED_WORLD || {
     meta: {
         title: 'The Abandoned Station',
         author: 'System',
-        version: '1.0.3' // Bumped version to force reset
+        version: '2.0.1'
     },
-    rooms: {
-        [atrium.id]: atrium,
-        [garden.id]: garden,
-        [lab.id]: lab,
-    },
-    entities: {
-        [statue.id]: statue,
-        [key.id]: key,
-        [datapad.id]: datapad,
-        [npc.id]: npc,
-        [exitGarden.id]: exitGarden,
-        [exitLab.id]: exitLab,
-        [exitAtriumFromGarden.id]: exitAtriumFromGarden,
-        [exitAtriumFromLab.id]: exitAtriumFromLab,
-    },
-    variables: {}, // Initial global state
+    entities: entitiesMap,
     start: {
-        roomId: INITIAL_ROOM_ID,
-        player: {
-            components: player.components // Use the pre-defined player components
-        }
+        roomId: 2,
+        player: { ...playerEntity }
     }
 };
 
 export const INITIAL_STATE: GameState = {
     worldId: `${INITIAL_WORLD.meta.title}_${INITIAL_WORLD.meta.version}`,
     meta: INITIAL_WORLD.meta,
-    player,
+    player: 1,
     world: {
-        nextId: 100, // Safe starting ID for new creations
-        rooms: INITIAL_WORLD.rooms,
+        nextId: 100,
         entities: INITIAL_WORLD.entities,
     },
     time: 0,
     variables: {},
     messageLog: [],
 };
+

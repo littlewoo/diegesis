@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGame } from '../../store/GameContext';
-import type { GameObject, GameObjectType } from '../../types';
+import type { Entity } from '../../types';
 import { AdminListItem } from './common/AdminListItem';
 import './EntityListView.css';
 
 interface EntityListViewProps {
-    onEdit: (entity: GameObject) => void;
+    onEdit: (entity: Entity) => void;
     onDelete: (entityId: number) => void;
     onCreate: () => void;
     currentRoomId: number;
-    forcedType?: GameObjectType | 'all';
+    forcedType?: string | 'all';
     initialRoomFilter?: boolean;
 }
 
@@ -23,53 +23,58 @@ export const EntityListView: React.FC<EntityListViewProps> = ({
 }) => {
     const { state } = useGame();
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterType, setFilterType] = useState<GameObjectType | 'all'>(forcedType);
+    const [filterType, setFilterType] = useState<string | 'all'>(forcedType);
     const [onlyCurrentRoom, setOnlyCurrentRoom] = useState(initialRoomFilter);
 
     // If forcedType changes (e.g. switching tabs), update the filter
-    React.useEffect(() => {
+    useEffect(() => {
         if (forcedType) setFilterType(forcedType);
-        // We also want to respect the initialRoomFilter when tabs switch, if desired.
-        // But since this component is likely remounted or key changes on tab switch in AdminPanel, 
-        // the initial state should handle it. 
-        // AdminPanel uses key={activeTab} for EntityEditor, so it remounts.
     }, [forcedType]);
 
     const allEntities = useMemo(() => Object.values(state.world.entities), [state.world.entities]);
 
     const filteredEntities = useMemo(() => {
         return allEntities.filter(entity => {
+            const name = entity.components.identity?.name || '';
+
             // Search Query - check Name and Alias
             const query = searchQuery.toLowerCase();
             if (searchQuery &&
-                !entity.name.toLowerCase().includes(query) &&
+                !name.toLowerCase().includes(query) &&
                 !entity.alias.toLowerCase().includes(query)) {
                 return false;
             }
 
             // Type Filter
-            if (filterType !== 'all' && entity.type !== filterType) {
-                return false;
+            if (filterType !== 'all') {
+                if (filterType === 'exit') {
+                    // Special case: Exits are Props with an exit component
+                    if (!entity.components.exit) return false;
+                } else if (filterType === 'scenery') {
+                    // Special case: Scenery are Props (without exit component usually, or just all props?)
+                    // Let's say Scenery = 'prop' but NOT exits?
+                    if (entity.type !== 'prop') return false;
+                    if (entity.components.exit) return false; // Exclude exits from "Objects/Scenery" list?
+                } else if (filterType === 'prop') {
+                    // Generic prop filter
+                    if (entity.type !== 'prop') return false;
+                } else {
+                    // Normal type match (room, npc, item)
+                    if (entity.type !== filterType) return false;
+                }
             }
 
-            // Exits are separate now, never show them in general lists unless explicitly asked?
-            // User put Exits in their own tab. 'All' might want everything though?
-            // For now, let's exclude 'exit' type unless specifically requested or 'all' is selected.
-            // Actually 'all' implies everything. But the prompt implies "NPCs - Items - Objects - All".
-            // If 'Exits' is a separate tab, maybe 'All' should still include them?
-            // Let's assume standard behavior: filterType matches check.
-
-            // Room Filter
+            // Room Filter (Location Check)
             if (onlyCurrentRoom) {
-                const currentRoom = state.world.rooms[currentRoomId];
-                if (currentRoom && !currentRoom.contents.includes(entity.id)) {
+                const entityRoomId = entity.components.position?.roomId;
+                if (entityRoomId !== currentRoomId) {
                     return false;
                 }
             }
 
             return true;
         });
-    }, [allEntities, searchQuery, filterType, onlyCurrentRoom, currentRoomId, state.world.rooms]);
+    }, [allEntities, searchQuery, filterType, onlyCurrentRoom, currentRoomId]);
 
     return (
         <div className="entity-list-view">
@@ -90,14 +95,14 @@ export const EntityListView: React.FC<EntityListViewProps> = ({
                             <label>Type:</label>
                             <select
                                 value={filterType}
-                                onChange={(e) => setFilterType(e.target.value as GameObjectType | 'all')}
+                                onChange={(e) => setFilterType(e.target.value as any)}
                                 className="filter-select"
                             >
                                 <option value="all">All</option>
                                 <option value="item">Item</option>
                                 <option value="npc">NPC</option>
-                                <option value="scenery">Scenery</option>
-                                <option value="exit">Exit</option>
+                                <option value="prop">Prop</option>
+                                <option value="room">Room</option>
                             </select>
                         </div>
                     )}
@@ -124,11 +129,10 @@ export const EntityListView: React.FC<EntityListViewProps> = ({
                     filteredEntities.map(entity => (
                         <AdminListItem
                             key={entity.id}
-                            label={entity.name}
+                            label={entity.components.identity?.name || 'Unnamed'}
                             subLabel={`${forcedType === 'all' ? entity.type + ' • ' : ''}${entity.alias || '#' + entity.id}`}
                             onClick={() => onEdit(entity)}
                             onDelete={() => onDelete(entity.id)}
-                            deleteTitle="Delete Entity"
                         />
                     ))
                 )}

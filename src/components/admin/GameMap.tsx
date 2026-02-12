@@ -28,8 +28,8 @@ interface EdgeHover {
 
 export const GameMap: React.FC = () => {
     const { state, dispatch } = useGame();
-    const rooms = state.world.rooms;
-    const currentRoomId = state.player.components.position.currentRoomId;
+    // const rooms = state.world.rooms; // OLD
+    const currentRoomId = state.world.entities[state.player]?.components.position?.roomId;
 
     const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
     const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
@@ -56,36 +56,37 @@ export const GameMap: React.FC = () => {
 
     // Calculate effective nodes
     const nodes = useMemo(() => {
-        // Ensure we only process valid numeric IDs that exist in the rooms object
-        const roomIds = Object.keys(rooms)
-            .map(Number)
-            .filter(id => !isNaN(id) && rooms[id]);
+        // Filter for Room Type Exclusively
+        const roomEntities = Object.values(state.world.entities).filter(e => e.type === 'room');
+        const roomIds = roomEntities.map(r => r.id);
 
         const centerX = 250;
         const centerY = 250;
-        const radius = Math.min(roomIds.length * 15, 100); // Even tighter
+        const radius = Math.min(roomIds.length * 15, 100);
 
-        return roomIds.reduce((acc, id, index) => {
-            const room = rooms[id];
-            // Since we filtered, room should exist, but let's be extra safe
-            if (!room) return acc;
+        return roomEntities.reduce((acc, room, index) => {
+            const id = room.id;
+            // TODO: Store mapPosition in a component? e.g. components.editor { x, y }
+            // For now, we don't have persistent map positions in the new Entity component map standard yet.
+            // But we can fallback to auto-layout.
 
-            const pos = localNodePos[id] || room.mapPosition;
+            // Checking if we have saved positions in local state (or maybe we should add 'editor' component?)
+            const pos = localNodePos[id]; // || room.components.editor?.mapPosition;
 
             if (pos) {
-                acc[id] = { id, name: room.name, ...pos };
+                acc[id] = { id, name: room.components.identity?.name || room.alias, ...pos };
             } else {
                 const angle = (index / roomIds.length) * 2 * Math.PI;
                 acc[id] = {
                     id,
-                    name: room.name,
+                    name: room.components.identity?.name || room.alias,
                     x: centerX + radius * Math.cos(angle),
                     y: centerY + radius * Math.sin(angle)
                 };
             }
             return acc;
         }, {} as Record<number, Node>);
-    }, [rooms, localNodePos]);
+    }, [state.world.entities, localNodePos]);
 
     const nodesRef = useRef(nodes);
     useEffect(() => {
@@ -96,23 +97,28 @@ export const GameMap: React.FC = () => {
         const result: { from: number, to: number, label: string }[] = [];
         const entities = state.world.entities;
 
-        Object.values(rooms).forEach(room => {
-            room.contents.forEach(entityId => {
+        // Iterate all rooms
+        Object.values(entities).filter(e => e.type === 'room').forEach(room => {
+            // Find exits in this room's contents
+            const contents = room.components.container?.contents || [];
+
+            contents.forEach(entityId => {
                 const entity = entities[entityId];
-                if (entity && entity.type === 'exit') {
-                    const targetRoomId = entity.components.exit?.targetRoomId;
+                // Check if it's an exit (has exit component)
+                if (entity && entity.components.exit) {
+                    const targetRoomId = entity.components.exit.targetRoomId;
                     if (targetRoomId && nodes[room.id] && nodes[targetRoomId]) {
                         result.push({
                             from: room.id,
                             to: targetRoomId,
-                            label: entity.name
+                            label: entity.components.identity?.name || entity.alias
                         });
                     }
                 }
             });
         });
         return result;
-    }, [rooms, nodes, state.world.entities]);
+    }, [nodes, state.world.entities]);
 
     // Precise coordinate conversion helper
 

@@ -11,9 +11,11 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onToggleAdmin }) => {
     const { state } = useGame();
     const timeData = getTimeData(state.time);
-    const { player } = state;
-    const stats = player.components.stats;
-    const moods = player.components.moods;
+    const playerEntity = state.world.entities[state.player];
+
+    if (!playerEntity) return null; // Safe guard
+
+    const stats = playerEntity.components.stats || { strength: 0, health: 0, maxHealth: 0 };
 
     return (
         <div className="sidebar-content">
@@ -30,28 +32,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onToggleAdmin }) => {
                     <span>{stats.strength}</span>
                 </div>
                 <div className="stat-row">
-                    <span>AGI</span>
-                    <span>{stats.agility}</span>
-                </div>
-                <div className="stat-row">
-                    <span>INT</span>
-                    <span>{stats.intelligence}</span>
-                </div>
-            </section>
-
-            <section className="sidebar-section player-moods">
-                <h2>Moods</h2>
-                <div className="stat-row">
-                    <span>Health</span>
-                    <span>{moods.health}%</span>
-                </div>
-                <div className="stat-row">
-                    <span>Stamina</span>
-                    <span>{moods.stamina}%</span>
-                </div>
-                <div className="stat-row">
-                    <span>Morale</span>
-                    <span>{moods.morale}%</span>
+                    <span>HP</span>
+                    <span>{stats.health} / {stats.maxHealth}</span>
                 </div>
             </section>
 

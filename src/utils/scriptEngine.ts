@@ -1,4 +1,4 @@
-import type { GameState, Script, Condition, Effect, TriggerType, GameObject, Room } from '../types';
+import type { GameState, Script, Condition, Effect, TriggerType, Entity } from '../types';
 import type { Action } from '../store/actions';
 
 /**
@@ -12,33 +12,23 @@ type ScriptContext = {
     // Add other context properties as needed, e.g., current entity, player, etc.
 };
 
-export const resolveTarget = (targetAlias: string, context: ScriptContext): GameObject | Room | undefined => {
+export const resolveTarget = (targetAlias: string, context: ScriptContext): Entity | undefined => {
     if (!targetAlias) return undefined;
 
     // 1. Check if it's "player"
     if (targetAlias === 'player') {
-        // We'd need to return the player object, but currently the context only has the player *entity* if we passed it?
-        // Actually context.gameState.player is the player state.
-        // For now, let's assume valid targets are in world.entities or world.rooms
-        // If we need to target the player entity, we might need to look it up if it has an ID/Alias.
-        // But usually "player" is special.
-        // For this refactor, let's stick to world objects.
+        const playerId = context.gameState.player;
+        return context.gameState.world.entities[playerId];
     }
 
     // 2. Lookup in Entities (by Alias)
     const entity = Object.values(context.gameState.world.entities).find(e => e.alias === targetAlias);
     if (entity) return entity;
 
-    // 3. Lookup in Rooms (by Alias)
-    const room = Object.values(context.gameState.world.rooms).find(r => r.alias === targetAlias);
-    if (room) return room;
-
-    // 4. Fallback: Check if it's a raw numeric ID (as a string) - for backward compat or direct ID usage
-    // Although we want to enforce aliases, it might be useful for debugging.
+    // 3. Fallback: Check if it's a raw numeric ID (as a string)
     const id = Number(targetAlias);
     if (!isNaN(id)) {
         if (context.gameState.world.entities[id]) return context.gameState.world.entities[id];
-        if (context.gameState.world.rooms[id]) return context.gameState.world.rooms[id];
     }
 
     return undefined;

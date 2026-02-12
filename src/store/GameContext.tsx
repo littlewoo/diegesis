@@ -45,14 +45,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         saveTimeoutRef.current = setTimeout(() => {
             if (state.meta) { // Only save if we have a valid world loaded
+                const playerEntity = state.world.entities[state.player];
                 const worldDefinition = {
                     meta: state.meta,
-                    rooms: state.world.rooms,
                     entities: state.world.entities,
                     start: {
-                        roomId: state.player.components.position.currentRoomId,
+                        roomId: playerEntity?.components.position?.roomId || 0,
                         player: {
-                            components: state.player.components
+                            alias: playerEntity?.alias,
+                            type: playerEntity?.type,
+                            components: playerEntity?.components
                         }
                     }
                 };
@@ -60,12 +62,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }, AUTO_SAVE_DELAY);
 
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, [state.world.rooms, state.world.entities, state.meta, state.player.components]); // Dependencies for auto-save
+    }, [state.world.entities, state.meta, state.player]); // Dependencies for auto-save
 
     return (
         <GameContext.Provider value={{ state, dispatch }}>

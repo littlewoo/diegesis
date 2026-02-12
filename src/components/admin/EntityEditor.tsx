@@ -1,47 +1,46 @@
 import React, { useState } from 'react';
 import { useGame } from '../../store/GameContext';
-import type { GameObject, GameObjectType, Room } from '../../types';
+import type { Entity } from '../../types';
 import './EntityEditor.css';
 import { EntityListView } from './EntityListView';
 
 interface EntityEditorProps {
-    initialFilter?: GameObjectType | 'all';
+    initialFilter?: string | 'all'; // Type loose for now as 'item' | 'npc' etc are strings
     initialRoomFilter?: boolean;
 }
 
 export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all', initialRoomFilter = false }) => {
     const { state, dispatch } = useGame();
-    const currentRoomId = state.player.components.position.currentRoomId;
+    // Safe access to player room
+    const playerEntity = state.world.entities[state.player];
+    const currentRoomId = playerEntity?.components.position?.roomId || 0;
 
     const [editingId, setEditingId] = useState<string | number | null>(null);
-    const [formData, setFormData] = useState<Partial<GameObject>>({
-        name: '',
-        description: '',
-        type: initialFilter !== 'all' ? initialFilter : 'item'
+    const [formData, setFormData] = useState<Partial<Entity>>({
+        alias: '',
+        type: (initialFilter !== 'all' ? initialFilter : 'item') as any,
+        components: {
+            identity: { name: '', description: '' }
+        }
     });
     const [selectedRoomId, setSelectedRoomId] = useState<number>(currentRoomId);
 
-    // Exit specific state (derived from formData or separate? Form data handling is cleaner)
-    // We will extract targetRoomId from formData.components.exit manually when rendering/saving
-
     // Helper to find which room an entity is currently in
     const findEntityRoom = (entityId: number): number | undefined => {
-        return Object.values(state.world.rooms).find(room => room.contents.includes(entityId))?.id;
+        // We can just check the entity's position component directly!
+        const entity = state.world.entities[entityId];
+        return entity?.components.position?.roomId;
     };
 
-    const handleEdit = (entity: GameObject) => {
+    const handleEdit = (entity: Entity) => {
         setEditingId(entity.id);
-        const scripts = entity.scripts || {};
         const components = entity.components || {};
 
         setFormData({
             id: entity.id,
             alias: entity.alias,
-            name: entity.name,
-            description: entity.description,
             type: entity.type,
-            components: components,
-            scripts: scripts
+            components: JSON.parse(JSON.stringify(components)) // Deep copy to avoid mutating state
         });
 
         const room = findEntityRoom(entity.id);
@@ -50,25 +49,49 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
 
     const handleCreate = () => {
         setEditingId('new');
+
+        let initialType: Entity['type'] = 'item';
+        let defaultComponents: any = { identity: { name: '', description: '' } };
+
+        if (initialFilter === 'npc') initialType = 'npc';
+        else if (initialFilter === 'room') initialType = 'room';
+        else if (initialFilter === 'scenery') initialType = 'prop';
+        else if (initialFilter === 'exit') {
+            initialType = 'prop';
+            defaultComponents.exit = { targetRoomId: 0 };
+            defaultComponents.identity.description = 'Exit to...';
+        } else if (initialFilter !== 'all') {
+            initialType = initialFilter as any; // Fallback
+        }
+
         setFormData({
             id: 0,
             alias: '',
-            name: '',
-            description: '',
-            type: initialFilter !== 'all' ? initialFilter : 'item',
-            components: {},
-            scripts: {}
+            type: initialType,
+            components: defaultComponents
         });
         // Keep current room selection
     };
 
     const handleCancel = () => {
         setEditingId(null);
-        setFormData({ name: '', description: '', type: 'item' });
+        setFormData({});
     };
 
-    const processData = (data: Partial<GameObject>): boolean => {
-        if (!data.name || data.name.trim() === '') {
+    const getName = () => formData.components?.identity?.name;
+    const setName = (name: string) => setFormData({
+        ...formData,
+        components: {
+            ...formData.components!,
+            identity: { ...formData.components!.identity!, name }
+        }
+    });
+
+    const setType = (type: any) => setFormData({ ...formData, type });
+
+    const processData = (data: Partial<Entity>): boolean => {
+        const name = data.components?.identity?.name;
+        if (!name || name.trim() === '') {
             alert('Name cannot be empty.');
             return false;
         }
@@ -76,9 +99,9 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
             alert('Type cannot be empty.');
             return false;
         }
-        if (data.type === 'exit') {
-            const targetId = data.components?.exit?.targetRoomId;
-            if (targetId === undefined || targetId === '' || targetId === null) {
+        if (data.components?.exit) {
+            const targetId = data.components.exit.targetRoomId;
+            if (targetId === undefined || targetId === null) {
                 alert('Exits must have a Target Room.');
                 return false;
             }
@@ -89,7 +112,18 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
     const handleSave = () => {
         if (!processData(formData)) return;
 
-        const dataToSave: Partial<GameObject> = { ...formData };
+        // Ensure defaults
+        const dataToSave: Partial<Entity> = {
+            ...formData,
+            components: {
+                ...formData.components!,
+                // Ensure position is set
+                position: {
+                    ...(formData.components?.position || {}),
+                    roomId: selectedRoomId
+                }
+            }
+        };
 
         if (editingId && editingId !== 'new') {
             // Update Entity Properties
@@ -108,8 +142,7 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
                     type: 'MOVE_ENTITY',
                     payload: {
                         entityId: editingId as number,
-                        fromRoomId: currentEntityRoomId,
-                        toRoomId: selectedRoomId
+                        targetContainerId: selectedRoomId
                     }
                 });
             }
@@ -118,8 +151,7 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
             dispatch({
                 type: 'ADD_ENTITY',
                 payload: {
-                    entity: dataToSave as GameObject,
-                    roomId: selectedRoomId
+                    entity: dataToSave as Entity
                 }
             });
         }
@@ -128,82 +160,78 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
 
     const handleDelete = (entityId: number) => {
         if (confirm('Are you sure you want to delete this entity?')) {
-            const roomId = findEntityRoom(entityId);
-            if (roomId) {
-                dispatch({ type: 'REMOVE_ENTITY', payload: { entityId, roomId } });
-                setEditingId(null);
-            } else {
-                alert("Could not find entity in any room to delete.");
-            }
+            dispatch({ type: 'REMOVE_ENTITY', payload: { entityId } });
+            setEditingId(null);
         }
     };
 
     // Exit Specific: Create New Room & Link
     const handleCreateNewRoomAndLink = () => {
-        if (!formData.name) {
+        const name = getName();
+        if (!name) {
             alert("Please enter a name for the exit first.");
             return;
         }
 
         // 1. Create New Room
         const newRoomId = state.world.nextId;
-        // Note: nextId usage here is optimistic prediction. 
-        // Real nextId is determined by reducer. But ADD_ROOM uses payload room.id if provided?
-        // Let's check Reducer. Usually ADD_ROOM takes room object. 
-        // InitialState has hardcoded IDs. 
-        // We assume safe to pick nextId from state.
+        // We assume nextId is correct.
 
-        const newRoom: Room = {
+        const newRoom: Entity = {
             id: newRoomId,
             alias: `#${newRoomId}`,
             type: 'room',
-            name: 'New Room',
-            description: 'An empty room.',
-            components: {},
-            contents: [],
+            components: {
+                identity: { name: 'New Room', description: 'An empty room.' },
+                room: { exits: [] },
+                container: { contents: [] },
+                position: { roomId: 0 } // Rooms might not be in a container, or in "Universe" (0)? check
+            }
         };
-        dispatch({ type: 'ADD_ROOM', payload: { room: newRoom } });
+        dispatch({ type: 'ADD_ENTITY', payload: { entity: newRoom } });
 
         // 2. Create This Exit (Forward)
-        // We use handleSave logic but override targetRoomId
         const forwardExit = {
             ...formData,
-            description: `Exit to room ${newRoomId}`,
             components: {
                 ...formData.components,
+                identity: { ...formData.components!.identity!, description: `Exit to room ${newRoomId}` },
                 exit: { targetRoomId: newRoomId },
-                position: { currentRoomId: selectedRoomId }
+                position: { roomId: selectedRoomId }
             }
         };
 
         dispatch({
             type: 'ADD_ENTITY',
-            payload: { entity: forwardExit as GameObject, roomId: selectedRoomId }
+            payload: { entity: forwardExit as Entity }
         });
 
         // 3. Create Back Exit (Backward)
-        // ID prediction for second entity is tricky if we don't know what ID forwardExit got. 
-        // Reducer manages IDs. We don't set ID here.
+        // Since we don't know the exact ID generated for forwardExit without waiting, 
+        // we just fire the action for backExit.
 
-        const backExit = {
-            id: 0,
+        // Wait, "backExit" is a separate entity.
+        const backExit: Partial<Entity> = {
             alias: `exit_back_${Date.now()}`,
-            type: 'exit' as const,
-            name: 'Back',
-            description: `Exit to room ${selectedRoomId}`,
-            scripts: {},
+            type: 'prop', // Exits are props
             components: {
+                identity: { name: 'Back', description: `Exit to room ${selectedRoomId}` },
                 exit: { targetRoomId: selectedRoomId },
-                position: { currentRoomId: newRoomId } // It is IN the new room
+                position: { roomId: newRoomId },
+                prop: {}
             }
         };
+
         dispatch({
             type: 'ADD_ENTITY',
-            payload: { entity: backExit, roomId: newRoomId }
+            payload: { entity: backExit as Entity }
         });
 
         setEditingId(null);
     };
+
+    // Helper to get all rooms
+    const allRooms = Object.values(state.world.entities).filter(e => e.type === 'room');
 
     if (!editingId) return (
         <div className="entity-editor">
@@ -238,8 +266,8 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
                 <label>Name</label>
                 <input
                     type="text"
-                    value={formData.name || ''}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.components?.identity?.name || ''}
+                    onChange={e => setName(e.target.value)}
                     className="editor-input"
                 />
             </div>
@@ -248,63 +276,79 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
                 <label>Type</label>
                 <select
                     value={formData.type}
-                    onChange={e => setFormData({ ...formData, type: e.target.value as GameObjectType })}
+                    onChange={e => setType(e.target.value)}
                     className="editor-input"
                 >
                     <option value="item">Item</option>
                     <option value="npc">NPC</option>
-                    <option value="scenery">Scenery</option>
-                    <option value="exit">Exit</option>
+                    <option value="prop">Prop (Scenery)</option>
+                    {/* Exits are Props with ExitComponent, but allow 'exit' as a mental shorthand? 
+                        Maybe force 'prop' if user selects 'exit' but add ExitComponent? 
+                        For now, let's Stick to the Type Enum: 'room' | 'npc' | 'item' | 'prop' 
+                    */}
+                    <option value="prop">Exit (Prop)</option>
                 </select>
+                <small>Note: Exits are Props with an Exit Component.</small>
             </div>
 
             <div className="form-group">
-                <label>Location (Room) {formData.type === 'exit' && '(Origin)'}</label>
+                <label>Location (Room) {formData.components?.exit && '(Origin)'}</label>
                 <select
                     value={selectedRoomId}
                     onChange={e => setSelectedRoomId(Number(e.target.value))}
                     className="editor-input"
                 >
-                    {Object.values(state.world.rooms).map(room => (
+                    {allRooms.map(room => (
                         <option key={room.id} value={room.id}>
-                            {room.name} (#{room.id})
+                            {room.components?.identity?.name} (#{room.id})
                         </option>
                     ))}
                 </select>
             </div>
 
-            {formData.type === 'exit' && (
-                <div className="form-group" style={{ background: 'rgba(var(--highlight-rgb), 0.05)', padding: '10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                    <label style={{ color: 'var(--highlight)' }}>Destination (Target Room)</label>
-                    <select
-                        value={formData.components?.exit?.targetRoomId || ''}
-                        onChange={e => {
-                            const val = Number(e.target.value);
+            {/* Exit Target Selector */}
+            <div className="form-group" style={{ background: 'rgba(var(--highlight-rgb), 0.05)', padding: '10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                <label style={{ color: 'var(--highlight)' }}>Has Exit Component? (Target Room)</label>
+                <select
+                    value={formData.components?.exit?.targetRoomId || ''}
+                    onChange={e => {
+                        const val = Number(e.target.value);
+                        if (val) {
                             setFormData({
                                 ...formData,
                                 components: {
-                                    ...formData.components,
+                                    ...formData.components!,
                                     exit: { targetRoomId: val }
                                 }
                             });
-                        }}
-                        className="editor-input"
-                    >
-                        <option value="">-- Select Target Room --</option>
-                        {Object.values(state.world.rooms).map(room => (
-                            <option key={room.id} value={room.id}>
-                                {room.name} (#{room.id})
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            )}
+                        } else {
+                            // Remove exit component if invalid? Or just set to 0?
+                            const { exit, ...rest } = formData.components!;
+                            setFormData({ ...formData, components: rest });
+                        }
+                    }}
+                    className="editor-input"
+                >
+                    <option value="">-- No Exit Component --</option>
+                    {allRooms.map(room => (
+                        <option key={room.id} value={room.id}>
+                            {room.components.identity.name} (#{room.id})
+                        </option>
+                    ))}
+                </select>
+            </div>
 
             <div className="form-group">
                 <label>Description</label>
                 <textarea
-                    value={formData.description || ''}
-                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    value={formData.components?.identity?.description || ''}
+                    onChange={e => setFormData({
+                        ...formData,
+                        components: {
+                            ...formData.components!,
+                            identity: { ...formData.components!.identity!, description: e.target.value }
+                        }
+                    })}
                     className="editor-textarea"
                     rows={5}
                 />
@@ -312,7 +356,7 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
 
             {/* Simple JSON editor for components */}
             <div className="form-group">
-                <label>Components (JSON)</label>
+                <label>All Components (JSON)</label>
                 <textarea
                     value={JSON.stringify(formData.components, null, 2)}
                     onChange={e => {
@@ -328,28 +372,9 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
                 />
             </div>
 
-            {/* Scripts JSON editor */}
-            <div className="form-group">
-                <label>Scripts (JSON)</label>
-                <textarea
-                    value={JSON.stringify(formData.scripts, null, 2)}
-                    onChange={e => {
-                        try {
-                            const parsed = JSON.parse(e.target.value);
-                            setFormData({ ...formData, scripts: parsed });
-                        } catch (err) {
-                            // ignore parse errors while typing
-                        }
-                    }}
-                    className="editor-textarea code-font"
-                    rows={8}
-                    placeholder='{ "ON_INTERACT": [ ... ] }'
-                />
-            </div>
-
             <div className="editor-actions">
                 <button onClick={handleSave} className="btn-primary">Save Entity</button>
-                {formData.type === 'exit' && editingId === 'new' && (
+                {formData.components?.exit && editingId === 'new' && (
                     <button onClick={handleCreateNewRoomAndLink} className="btn-secondary" style={{ borderColor: 'var(--highlight)', color: 'var(--highlight)' }}>
                         Create New Room & Link
                     </button>

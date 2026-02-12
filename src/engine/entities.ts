@@ -1,29 +1,28 @@
-import type { GameState, GameObject, Item } from '../types';
+import type { GameState, Entity } from '../types';
 
-export function getRoomEntities(state: GameState, roomId: number): GameObject[] {
-    const room = state.world.rooms[roomId];
-    if (!room) return [];
+export function getRoomEntities(state: GameState, roomId: number): Entity[] {
+    const room = state.world.entities[roomId];
+    if (!room || !room.components.container) return [];
 
-    // In a real implementation with `contents` array of IDs:
-    // return room.contents.map(id => state.world.entities[id]).filter(Boolean);
-
-    // For now, since `entities` might be global or local, let's assume `world.entities` has everything
-    // and we filter by some location component if it existed, or just use the contents array.
-
-    // Currently `room.contents` is just `string[]`.
-    return room.contents.map(id => state.world.entities[id]).filter(e => e !== undefined);
+    // Map contents IDs to actual entities
+    return room.components.container.contents
+        .map(id => state.world.entities[id])
+        .filter((e): e is Entity => e !== undefined);
 }
 
-export function isItem(entity: GameObject): entity is Item {
-    return entity.type === 'item';
+export function isItem(entity: Entity): boolean {
+    return !!entity.components.portable || entity.type === 'item';
 }
 
-export function isNPC(entity: GameObject): boolean {
-    return entity.type === 'npc';
+export function isNPC(entity: Entity): boolean {
+    // Check for stats or type 'npc'
+    return !!entity.components.stats || entity.type === 'npc';
 }
 
-export function isInteractable(entity: GameObject): boolean {
-    // Check if it has interactions or is an item/npc
-    // For now, simpler check:
-    return !!entity.components?.interactions || entity.type === 'npc' || entity.type === 'item';
+export function isInteractable(entity: Entity): boolean {
+    // Check if it has scripts handling interaction
+    // OR if it's a prop (interactable fixture)
+    // OR if it's an item/npc which usually have default interactions
+    const hasInteractScript = entity.components.scripts?.['ON_INTERACT']?.length && entity.components.scripts['ON_INTERACT'].length > 0;
+    return !!hasInteractScript || !!entity.components.prop || isItem(entity) || isNPC(entity);
 }

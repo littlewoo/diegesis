@@ -15,14 +15,16 @@ export const AdminPanel: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AdminTab>('game');
 
     const exportWorld = () => {
+        const playerEntity = state.world.entities[state.player];
         const worldDefinition = {
             meta: state.meta || { title: 'Untitled', author: 'Anonymous', version: '0.0.1' },
-            rooms: state.world.rooms,
             entities: state.world.entities,
             start: {
-                roomId: state.player.components.position.currentRoomId,
+                roomId: playerEntity?.components.position?.roomId || 0,
                 player: {
-                    components: state.player.components
+                    alias: playerEntity?.alias,
+                    type: playerEntity?.type,
+                    components: playerEntity?.components
                 }
             }
         };
@@ -54,13 +56,17 @@ export const AdminPanel: React.FC = () => {
                 }
             }
 
+            const playerEntity = state.world.entities[state.player];
             const worldDefinition = {
                 meta: state.meta || { title: 'Untitled', author: 'Anonymous', version: '0.0.1' },
-                rooms: state.world.rooms,
                 entities: state.world.entities,
                 start: {
-                    roomId: state.player.components.position.currentRoomId,
-                    player: { components: state.player.components }
+                    roomId: playerEntity?.components.position?.roomId || 0,
+                    player: {
+                        alias: playerEntity?.alias,
+                        type: playerEntity?.type,
+                        components: playerEntity?.components
+                    }
                 }
             };
 
@@ -133,7 +139,7 @@ export const AdminPanel: React.FC = () => {
                                         reader.onload = (event) => {
                                             try {
                                                 const definition = JSON.parse(event.target?.result as string);
-                                                if (definition.meta && definition.rooms) {
+                                                if (definition.meta && definition.entities) {
                                                     dispatch({ type: 'LOAD_WORLD', payload: { definition } });
                                                 } else {
                                                     alert('Invalid World Definition file');
@@ -158,7 +164,7 @@ export const AdminPanel: React.FC = () => {
                 {activeTab === 'current-room' && (
                     <div className="admin-section">
                         <h4>Edit Current Room</h4>
-                        <p>Room ID: {state.player.components.position.currentRoomId}</p>
+                        <p>Room ID: {state.world.entities[state.player]?.components.position?.roomId}</p>
                         <RoomEditor />
                     </div>
                 )}
