@@ -88,6 +88,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
             return {
                 ...state,
                 time: state.time + 10, // Cost of moving
+                messageLog: [], // Clear log on room change
                 world: {
                     ...state.world,
                     entities: newEntities
@@ -148,6 +149,7 @@ export function gameReducer(state: GameState, action: Action): GameState {
 
             return {
                 ...state,
+                messageLog: [], // Clear log on teleport
                 world: {
                     ...state.world,
                     entities: newEntities
