@@ -103,7 +103,7 @@ const exitAtriumFromLab = createExit(23, 'exit_atrium_lab', 'Main Hall', 4, 2);
 const playerEntity: Entity = {
     id: 1,
     alias: 'player',
-    type: 'npc', // Players are NPCs/Actors
+    type: 'player', // Special type for the player
     visible: false, // Player is hidden by default
     components: {
         identity: { name: 'Traveler', description: 'A wanderer in this strange place.' },

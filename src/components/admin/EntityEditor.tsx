@@ -251,126 +251,125 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
         <div className="entity-editor">
             <h2>{editingId === 'new' ? 'Create Entity' : `Editing: ${formData.alias || '#' + formData.id}`}</h2>
 
-            <div className="form-group">
-                <label>Alias (ID: {formData.id === 0 ? 'New' : formData.id})</label>
-                <input
-                    type="text"
-                    value={formData.alias || ''}
-                    onChange={e => setFormData({ ...formData, alias: e.target.value })}
-                    placeholder="(Optional) e.g. 'my_sword'"
-                    className="editor-input"
-                />
-                <small>Leave blank to auto-generate from ID</small>
-            </div>
+            <div className="entity-form">
+                <div className="form-group">
+                    <label>Alias (ID: {formData.id === 0 ? 'New' : formData.id})</label>
+                    <input
+                        type="text"
+                        value={formData.alias || ''}
+                        onChange={e => setFormData({ ...formData, alias: e.target.value })}
+                        placeholder="(Optional) e.g. 'my_sword'"
+                        className="editor-input"
+                    />
+                    <small>Leave blank to auto-generate from ID</small>
+                </div>
 
-            <div className="form-group">
-                <label>Name</label>
-                <input
-                    type="text"
-                    value={formData.components?.identity?.name || ''}
-                    onChange={e => setName(e.target.value)}
-                    className="editor-input"
-                />
-            </div>
+                <div className="form-group">
+                    <label>Name</label>
+                    <input
+                        type="text"
+                        value={formData.components?.identity?.name || ''}
+                        onChange={e => setName(e.target.value)}
+                        className="editor-input"
+                    />
+                </div>
 
-            <div className="form-group">
-                <label>Type</label>
-                <select
-                    value={formData.type}
-                    onChange={e => setType(e.target.value)}
-                    className="editor-input"
-                >
-                    <option value="item">Item</option>
-                    <option value="npc">NPC</option>
-                    <option value="prop">Prop (Scenery)</option>
-                    {/* Exits are Props with ExitComponent, but allow 'exit' as a mental shorthand? 
-                        Maybe force 'prop' if user selects 'exit' but add ExitComponent? 
-                        For now, let's Stick to the Type Enum: 'room' | 'npc' | 'item' | 'prop' 
-                    */}
-                    <option value="prop">Exit (Prop)</option>
-                </select>
-                <small>Note: Exits are Props with an Exit Component.</small>
-            </div>
+                <div className="form-group">
+                    <label>Type</label>
+                    <select
+                        value={formData.type}
+                        onChange={e => setType(e.target.value)}
+                        className="editor-input"
+                        disabled={editingId === 'new' && initialFilter !== 'all'}
+                    >
+                        <option value="item">Item</option>
+                        <option value="npc">NPC</option>
+                        <option value="player">Player</option>
+                        <option value="prop">Object / Scenery</option>
+                        {/* Exits are Props with ExitComponent. If we are creating an 'exit', it falls under 'prop' type but has extra component. */}
+                        <option value="prop">Exit</option>
+                    </select>
+                    <small>Note: Exits are Props with an Exit Component.</small>
+                </div>
 
-            <div className="form-group">
-                <label>Location (Room) {formData.components?.exit && '(Origin)'}</label>
-                <select
-                    value={selectedRoomId}
-                    onChange={e => setSelectedRoomId(Number(e.target.value))}
-                    className="editor-input"
-                >
-                    {allRooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                            {room.components?.identity?.name} (#{room.id})
-                        </option>
-                    ))}
-                </select>
-            </div>
+                <div className="form-group">
+                    <label>Location (Room) {formData.components?.exit && '(Origin)'}</label>
+                    <select
+                        value={selectedRoomId}
+                        onChange={e => setSelectedRoomId(Number(e.target.value))}
+                        className="editor-input"
+                    >
+                        {allRooms.map(room => (
+                            <option key={room.id} value={room.id}>
+                                {room.components?.identity?.name} (#{room.id})
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-            {/* Exit Target Selector */}
-            <div className="form-group" style={{ background: 'rgba(var(--highlight-rgb), 0.05)', padding: '10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                <label style={{ color: 'var(--highlight)' }}>Has Exit Component? (Target Room)</label>
-                <select
-                    value={formData.components?.exit?.targetRoomId || ''}
-                    onChange={e => {
-                        const val = Number(e.target.value);
-                        if (val) {
-                            setFormData({
-                                ...formData,
-                                components: {
-                                    ...formData.components!,
-                                    exit: { targetRoomId: val }
+                {/* Exit Target Selector - Only show if already has exit component (or creating Exit) */}
+                {formData.components?.exit && (
+                    <div className="form-group" style={{ background: 'rgba(var(--highlight-rgb), 0.05)', padding: '10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                        <label style={{ color: 'var(--highlight)' }}>Target Room</label>
+                        <select
+                            value={formData.components?.exit?.targetRoomId || ''}
+                            onChange={e => {
+                                const val = Number(e.target.value);
+                                if (val) {
+                                    setFormData({
+                                        ...formData,
+                                        components: {
+                                            ...formData.components!,
+                                            exit: { targetRoomId: val }
+                                        }
+                                    });
                                 }
-                            });
-                        } else {
-                            // Remove exit component if invalid? Or just set to 0?
-                            const { exit, ...rest } = formData.components!;
-                            setFormData({ ...formData, components: rest });
-                        }
-                    }}
-                    className="editor-input"
-                >
-                    <option value="">-- No Exit Component --</option>
-                    {allRooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                            {room.components.identity.name} (#{room.id})
-                        </option>
-                    ))}
-                </select>
-            </div>
+                            }}
+                            className="editor-input"
+                        >
+                            <option value="">-- Select Room --</option>
+                            {allRooms.map(room => (
+                                <option key={room.id} value={room.id}>
+                                    {room.components.identity.name} (#{room.id})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
-            <div className="form-group">
-                <label>Description</label>
-                <textarea
-                    value={formData.components?.identity?.description || ''}
-                    onChange={e => setFormData({
-                        ...formData,
-                        components: {
-                            ...formData.components!,
-                            identity: { ...formData.components!.identity!, description: e.target.value }
-                        }
-                    })}
-                    className="editor-textarea"
-                    rows={5}
-                />
-            </div>
+                <div className="form-group full-width">
+                    <label>Description</label>
+                    <textarea
+                        value={formData.components?.identity?.description || ''}
+                        onChange={e => setFormData({
+                            ...formData,
+                            components: {
+                                ...formData.components!,
+                                identity: { ...formData.components!.identity!, description: e.target.value }
+                            }
+                        })}
+                        className="editor-textarea"
+                        rows={5}
+                    />
+                </div>
 
-            {/* Simple JSON editor for components */}
-            <div className="form-group">
-                <label>All Components (JSON)</label>
-                <textarea
-                    value={JSON.stringify(formData.components, null, 2)}
-                    onChange={e => {
-                        try {
-                            const parsed = JSON.parse(e.target.value);
-                            setFormData({ ...formData, components: parsed });
-                        } catch (err) {
-                            // ignore parse errors while typing
-                        }
-                    }}
-                    className="editor-textarea code-font"
-                    rows={10}
-                />
+                {/* Simple JSON editor for components */}
+                <div className="form-group full-width">
+                    <label>All Components (JSON)</label>
+                    <textarea
+                        value={JSON.stringify(formData.components, null, 2)}
+                        onChange={e => {
+                            try {
+                                const parsed = JSON.parse(e.target.value);
+                                setFormData({ ...formData, components: parsed });
+                            } catch (err) {
+                                // ignore parse errors while typing
+                            }
+                        }}
+                        className="editor-textarea code-font"
+                        rows={10}
+                    />
+                </div>
             </div>
 
             <div className="editor-actions">

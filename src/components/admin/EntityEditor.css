@@ -15,6 +15,19 @@
     /* Allow form to scroll */
     padding-right: 0.5rem;
     flex: 1;
+
+    /* Comfortable reading width */
+    width: 100%;
+}
+
+
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-width: 600px;
+    /* Limit input width but keep container full width */
 }
 
 .entity-list-view {

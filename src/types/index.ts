@@ -32,7 +32,7 @@ export interface Entity {
     alias: string;
     // We keep 'type' for high-level classification/filtering (the "Archetype" tag)
     // but actual logic is driven by components.
-    type: 'room' | 'npc' | 'item' | 'prop';
+    type: 'room' | 'npc' | 'item' | 'prop' | 'player';
     visible: boolean;
     components: ComponentMap;
 }
