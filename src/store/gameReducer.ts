@@ -6,6 +6,7 @@ const createEntity = (id: number, template: Partial<Entity>): Entity => ({
     id,
     alias: template.alias || `#${id}`,
     type: template.type || 'prop',
+    visible: template.visible !== undefined ? template.visible : true,
     components: {
         identity: { name: 'Unknown', description: '...' },
         ...template.components

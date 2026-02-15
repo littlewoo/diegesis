@@ -21,7 +21,7 @@ export const MainView: React.FC = () => {
         return <div>Error: Room {currentRoomId} not found or invalid.</div>;
     }
 
-    const entities = getRoomEntities(state, currentRoomId!);
+    const entities = getRoomEntities(state, currentRoomId!).filter(e => e.visible !== false);
 
     const handleInteract = (entityId: number, actionId: string) => {
         // Find the entity

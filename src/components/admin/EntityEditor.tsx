@@ -181,6 +181,7 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({ initialFilter = 'all
             id: newRoomId,
             alias: `#${newRoomId}`,
             type: 'room',
+            visible: true,
             components: {
                 identity: { name: 'New Room', description: 'An empty room.' },
                 room: { exits: [] },

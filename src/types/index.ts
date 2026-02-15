@@ -33,6 +33,7 @@ export interface Entity {
     // We keep 'type' for high-level classification/filtering (the "Archetype" tag)
     // but actual logic is driven by components.
     type: 'room' | 'npc' | 'item' | 'prop';
+    visible: boolean;
     components: ComponentMap;
 }
 

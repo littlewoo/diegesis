@@ -3,10 +3,11 @@ import type { GameState, Entity, WorldDefinition } from '../types';
 
 // --- Factory Helpers ---
 
-const createEntity = (id: number, alias: string, type: Entity['type'], name: string, description: string, components: any = {}): Entity => ({
+const createEntity = (id: number, alias: string, type: Entity['type'], name: string, description: string, components: any = {}, visible: boolean = true): Entity => ({
     id,
     alias,
     type,
+    visible,
     components: {
         identity: { name, description },
         ...components
@@ -63,6 +64,7 @@ const npc: Entity = {
     id: 8,
     alias: 'gardener_bot',
     type: 'npc',
+    visible: true,
     components: {
         identity: {
             name: 'Unit-734',
@@ -102,6 +104,7 @@ const playerEntity: Entity = {
     id: 1,
     alias: 'player',
     type: 'npc', // Players are NPCs/Actors
+    visible: false, // Player is hidden by default
     components: {
         identity: { name: 'Traveler', description: 'A wanderer in this strange place.' },
         stats: { strength: 12, health: 100, maxHealth: 100 },

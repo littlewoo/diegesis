@@ -39,6 +39,7 @@ export const RoomListView: React.FC = () => {
             id: newId,
             alias: `room_${newId}`,
             type: 'room',
+            visible: true,
             components: {
                 identity: { name: 'New Room', description: 'An empty room.' },
                 room: { exits: [] },
